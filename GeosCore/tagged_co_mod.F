@@ -232,31 +232,78 @@
          X = GET_XMID( I, J, 1 )
          Y = GET_YMID( I, J, 1 )
          
-         ! Region #2 -- North American FF CO 
-         IF ( ( X >= -172.5 .and. X < -17.5 )   .and. 
-     &        ( Y >=   24.0 .and. Y <  88.0 ) ) THEN
+!---------------------------------------------------------
+! Reset tagged CO regions (jaf, 17 Oct 12)
+!         ! Region #2 -- North American FF CO 
+!         IF ( ( X >= -172.5 .and. X < -17.5 )   .and. 
+!     &        ( Y >=   24.0 .and. Y <  88.0 ) ) THEN
+!            REGION(I,J) = 2
+!            
+!         ! Region #3 -- European FF CO (1st sub-box)
+!         ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and. 
+!     &             ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
+!            REGION(I,J) = 3
+!
+!         ! Region #3 -- European FF CO (2nd sub-box)
+!         ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and. 
+!     &             ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
+!            REGION(I,J) = 3
+!
+!         ! Region #4 -- Asian FF CO (1st sub-box) 
+!         ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
+!     &             ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
+!            REGION(I,J) = 4
+!   
+!            ! Region #5 -- FF CO from everywhere else
+!         ELSE
+!            REGION(I,J) = 5
+!               
+!         ENDIF
+         ! Region #2 -- Australian/New Zealand FF CO 
+         IF ( ( X >=  112.5 .and. X < 180.0 )   .and. 
+     &        ( Y >=  -48.0 .and. Y < -10.0 ) ) THEN
             REGION(I,J) = 2
             
-         ! Region #3 -- European FF CO (1st sub-box)
-         ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and. 
-     &             ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
+         ! Region #3 -- Indonesian FF CO 
+         ELSE IF ( ( X >=  95.0 .and. X < 165.0 )  .and. 
+     &             ( Y >= -10.0 .and. Y <   6.0 ) ) THEN
             REGION(I,J) = 3
 
-         ! Region #3 -- European FF CO (2nd sub-box)
-         ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and. 
-     &             ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
-            REGION(I,J) = 3
-
-         ! Region #4 -- Asian FF CO (1st sub-box) 
-         ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-     &             ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
+         ! Region #4 -- SE Asian FF CO 
+         ELSE IF ( ( X >=  90.0 .and. X < 130.0 )  .and. 
+     &             ( Y >=   6.0 .and. Y <  32.0 ) ) THEN
             REGION(I,J) = 4
-   
-            ! Region #5 -- FF CO from everywhere else
-         ELSE
+
+         ! Region #5 -- Indian FF CO
+         ELSE IF ( ( X >= 70.0 .and. X <  90.0 )  .and.
+     &             ( Y >=  6.0 .and. Y <  32.0 ) ) THEN
             REGION(I,J) = 5
+   
+         ! Region #6 -- North Asian FF CO
+         ELSE IF ( ( X >= 75.0 .and. X < 152.5 )  .and.
+     &             ( Y >= 32.0 .and. Y <  56.0 ) ) THEN
+            REGION(I,J) = 6
+   
+         ! Region #7 -- African FF CO
+         ELSE IF ( ( X >= -17.5 .and. X <  55.0 )  .and.
+     &             ( Y >= -36.0 .and. Y <  36.0 ) ) THEN
+            REGION(I,J) = 7
+   
+         ! Region #8 -- South American FF CO
+         ELSE IF ( ( X >= -82.5 .and. X < -32.5 )  .and.
+     &             ( Y >= -58.0 .and. Y <  12.0 ) ) THEN
+            REGION(I,J) = 8
+   
+         ! Region #9 -- Other Northern Hemisphere FF CO
+         ELSE IF ( Y >= 6.0 ) THEN
+            REGION(I,J) = 9
+   
+         ! Region #9 -- FF CO from everywhere else
+         ELSE
+            REGION(I,J) = 10
                
          ENDIF
+!---------------------------------------------------------
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -316,42 +363,89 @@
           X = GET_XMID( I, J, 1 )
           Y = GET_YMID( I, J, 1 )
 
-          ! Region #6 -- South American BB CO 
-          IF ( ( X >= -112.5 .and. X < -32.5 )  .and.
-     &         ( Y >=  -56.0 .and. Y <  24.0 ) ) THEN
-             REGION(I,J) = 6
-
-          ! Region #7 -- African BB CO 
-          ELSE IF ( ( X >= -17.5 .and. X < 70.0 )  .and.
-     &              ( Y >= -48.0 .and. Y < 36.0 ) ) THEN
-             REGION(I,J) = 7
-
-          ! Region #8 -- SE Asian BB CO (1st sub-box) 
-          ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-     &              ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
-             REGION(I,J) = 8
-
-          ! Region #9 -- Oceania BB CO 
-          ELSE IF ( ( X >= 70.0 .and. X < 170.0 )  .and.
-     &              ( Y <  8.0 ) ) THEN
-             REGION(I,J) = 9
-
-          ! Region #10 -- European BB CO (1st sub-box)
-          ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and.
-     &              ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
-             REGION(I,J) = 10
-
-          ! Region #10 -- European BB CO (2nd sub-box)
-          ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and.
-     &              ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
-             REGION(I,J) = 10 
-
-          ! Region #11 -- North America BB CO  
-          ! (rest of world = North America)
-          ELSE 
+!---------------------------------------------------------
+! Reset tagged CO regions (jaf, 17 Oct 12)
+!          ! Region #6 -- South American BB CO 
+!          IF ( ( X >= -112.5 .and. X < -32.5 )  .and.
+!     &         ( Y >=  -56.0 .and. Y <  24.0 ) ) THEN
+!             REGION(I,J) = 6
+!
+!          ! Region #7 -- African BB CO 
+!          ELSE IF ( ( X >= -17.5 .and. X < 70.0 )  .and.
+!     &              ( Y >= -48.0 .and. Y < 36.0 ) ) THEN
+!             REGION(I,J) = 7
+!
+!          ! Region #8 -- SE Asian BB CO (1st sub-box) 
+!          ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
+!     &              ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
+!             REGION(I,J) = 8
+!
+!          ! Region #9 -- Oceania BB CO 
+!          ELSE IF ( ( X >= 70.0 .and. X < 170.0 )  .and.
+!     &              ( Y <  8.0 ) ) THEN
+!             REGION(I,J) = 9
+!
+!          ! Region #10 -- European BB CO (1st sub-box)
+!          ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and.
+!     &              ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
+!             REGION(I,J) = 10
+!
+!          ! Region #10 -- European BB CO (2nd sub-box)
+!          ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and.
+!     &              ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
+!             REGION(I,J) = 10 
+!
+!          ! Region #11 -- North America BB CO  
+!          ! (rest of world = North America)
+!          ELSE 
+!             REGION(I,J) = 11
+!
+!          ENDIF
+          ! Region #11 -- South American BB CO 
+          IF ( ( X >=  -82.5 .and. X < -32.5 )  .and.
+     &         ( Y >=  -58.0 .and. Y <  12.0 ) ) THEN
              REGION(I,J) = 11
 
+          ! Region #12 -- North African BB CO 
+          ELSE IF ( ( X >= -17.5 .and. X < 55.0 )  .and.
+     &              ( Y >=   0.0 .and. Y < 36.0 ) ) THEN
+             REGION(I,J) = 12
+
+          ! Region #13 -- South African BB CO 
+          ELSE IF ( ( X >= -17.5 .and. X < 55.0 )  .and.
+     &              ( Y >= -36.0 .and. Y <  0.0 ) ) THEN
+             REGION(I,J) = 13
+
+          ! Region #14 -- Southeast Asian BB CO 
+          ELSE IF ( ( X >= 90.0 .and. X < 130.0 )  .and.
+     &              ( Y >=  6.0 .and. Y <  32.0 ) ) THEN
+             REGION(I,J) = 14
+
+         ! Region #15 -- Indian BB CO
+         ELSE IF ( ( X >= 70.0 .and. X <  90.0 )  .and.
+     &             ( Y >=  6.0 .and. Y <  32.0 ) ) THEN
+            REGION(I,J) = 15
+   
+          ! Region #16 -- Indonesian BB CO 
+          ELSE IF ( ( X >=  95.0 .and. X < 165.0 )  .and.
+     &              ( Y >= -10.0 .and. Y <   6.0 ) ) THEN
+             REGION(I,J) = 16
+
+          ! Region #17 -- Australian BB CO 
+          ELSE IF ( ( X >= 112.5 .and. X < 167.5 )  .and.
+     &              ( Y >= -44.0 .and. Y < -10.0 ) ) THEN
+             REGION(I,J) = 17 
+
+         ! Region #18 -- Other Northern Hemisphere BB CO
+         ELSE IF ( Y >= 6.0 ) THEN
+            REGION(I,J) = 18
+   
+          ! Region #19 -- Rest of World BB CO  
+          ELSE 
+             REGION(I,J) = 19
+
           ENDIF
+!---------------------------------------------------------
        ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -661,7 +755,11 @@
             ! %%% then comment out this IF block.  If you don't you can
             ! %%% get an array-out-of-bounds error (bmy, 6/11/08)
             IF ( LSPLIT ) THEN
-               STT(I,J,1,13) = STT(I,J,1,13) + E_CO
+!---------------------------------------------------------
+! Reset tagged CO regions (jaf, 17 Oct 12)
+!               STT(I,J,1,13) = STT(I,J,1,13) + E_CO
+               STT(I,J,1,21) = STT(I,J,1,21) + E_CO
+!---------------------------------------------------------
             ENDIF
          ENDDO
          ENDDO
@@ -1200,11 +1298,19 @@
          ! %%% get an array-out-of-bounds error (bmy, 6/11/08)
          !==============================================================
          IF ( LSPLIT ) THEN
-            STT(I,J,L,12) = STT(I,J,L,12) + CO_CH4   / STTCO
-            STT(I,J,L,14) = STT(I,J,L,14) + CO_ISOP  / STTCO 
-            STT(I,J,L,15) = STT(I,J,L,15) + CO_MONO  / STTCO
-            STT(I,J,L,16) = STT(I,J,L,16) + CO_CH3OH / STTCO
-            STT(I,J,L,17) = STT(I,J,L,17) + CO_ACET  / STTCO
+!---------------------------------------------------------
+! Reset tagged CO regions (jaf, 17 Oct 12)
+!            STT(I,J,L,12) = STT(I,J,L,12) + CO_CH4   / STTCO
+!            STT(I,J,L,14) = STT(I,J,L,14) + CO_ISOP  / STTCO 
+!            STT(I,J,L,15) = STT(I,J,L,15) + CO_MONO  / STTCO
+!            STT(I,J,L,16) = STT(I,J,L,16) + CO_CH3OH / STTCO
+!            STT(I,J,L,17) = STT(I,J,L,17) + CO_ACET  / STTCO
+            STT(I,J,L,20) = STT(I,J,L,20) + CO_CH4   / STTCO
+            STT(I,J,L,22) = STT(I,J,L,22) + CO_ISOP  / STTCO 
+            STT(I,J,L,23) = STT(I,J,L,23) + CO_MONO  / STTCO
+            STT(I,J,L,24) = STT(I,J,L,24) + CO_CH3OH / STTCO
+            STT(I,J,L,25) = STT(I,J,L,25) + CO_ACET  / STTCO
+!---------------------------------------------------------
          ENDIF
 
          !==============================================================
