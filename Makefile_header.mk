@@ -148,10 +148,10 @@ endif
 #==============================================================================
 
 # If your system uses "/bin/sh", then uncomment this line!
-SHELL     := /bin/sh
+#SHELL     := /bin/sh
 
 # If your system uses "/bin/bash", then uncomment this line!
-#SHELL     := /bin/bash
+SHELL     := /bin/bash
 
 # Library include path
 NCI       := -I$(GC_INCLUDE)
@@ -167,12 +167,12 @@ NCL       := $(filter -l%,$(NCL))
 #%%%% Then you can add/modify the linking sequence here.  (This sequence
 #%%%% is a guess, but is probably good enough for other netCDF builds.)
 ifeq ($(NCL),) 
-NCL       := -lnetcdf -lhdf5_hl -lhdf5 -lz
+NCL       := -lnetcdff -lnetcdf -lhdf5_fortran -lhdf5 -lm
 endif
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Prepend the library directory path to the linking sequence
-NCL       := -L$(GC_LIB) $(NCL)
+#NCL       := -L$(GC_LIB) $(NCL)
 
 # Command to link to the various library files (-lHeaders should be last!)
 LINK      := -L$(LIB) -lKpp -lIsoropia -lGeosUtil -lHeaders
