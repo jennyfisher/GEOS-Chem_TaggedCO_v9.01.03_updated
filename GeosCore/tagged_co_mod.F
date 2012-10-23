@@ -127,6 +127,7 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  23 Oct 2012 - J. Fisher   - Fix size allocation of CO_PRODS, CO_LOSSS
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -156,8 +157,8 @@
       REAL*8,  ALLOCATABLE :: SUMMONOCO(:,:)
       REAL*8,  ALLOCATABLE :: SUMACETCO(:,:)
       REAL*8,  ALLOCATABLE :: EMACET(:,:)
-      REAL*8,  ALLOCATABLE :: CO_PRODS(:,:)
-      REAL*8,  ALLOCATABLE :: CO_LOSSS(:,:)
+      REAL*8,  ALLOCATABLE :: CO_PRODS(:,:,:)
+      REAL*8,  ALLOCATABLE :: CO_LOSSS(:,:,:)
 
       ! FMOL_CO     - kg CO / mole CO
       ! XNUMOL_CO   - molecules CO / kg CO
@@ -1717,9 +1718,9 @@
       ! Pick P(CO) or L(CO) depending on IS_PROD
       !=================================================================
       IF ( IS_PROD ) THEN
-         RATE = CO_PRODS(J,L)   ! P(CO) from CH4 + OH in [v/v/s]
+         RATE = CO_PRODS(I,J,L)   ! P(CO) from CH4 + OH in [v/v/s]
       ELSE
-         RATE = CO_LOSSS(J,L)   ! L(CO) from CO + OH  in [s^-1]
+         RATE = CO_LOSSS(I,J,L)   ! L(CO) from CO + OH  in [s^-1]
       ENDIF
     
       ! Return to calling program
@@ -1862,12 +1863,12 @@
       EMACET = 0d0 
 
       ! Allocate and initialize IJLOOP_CO -- 1-D array index
-      ALLOCATE( CO_PRODS( JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CO_PRODS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_PRODS' )    
       CO_PRODS = 0d0
 
       ! Allocate and initialize IJLOOP_CO -- 1-D array index
-      ALLOCATE( CO_LOSSS( JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CO_LOSSS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_LOSSS' )    
       CO_LOSSS = 0d0
 
