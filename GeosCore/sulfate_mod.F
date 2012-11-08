@@ -129,6 +129,7 @@
 !  08 Feb 2012 - R. Yantosca   - Add modifications for GEOS-5.7.2 met
 !  01 Mar 2012 - R. Yantosca   - Now reference new grid_mod.F90
 !  13 Mar 2012 - M. Cooper     - Changed regrid algorithm to map_a2a
+!  08 Nov 2012 - J.A. Fisher   - Now added NPI emissions for Australia
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4514,7 +4515,7 @@
       USE GRID_MOD,       ONLY     : GET_AREA_CM2
       USE GRID_MOD,       ONLY     : GET_XOFFSET, GET_YOFFSET
       USE LOGICAL_MOD,    ONLY     : LBRAVO, LNEI99,   LSHIPSO2
-      USE LOGICAL_MOD,    ONLY     : LCAC, LNEI05
+      USE LOGICAL_MOD,    ONLY     : LCAC,   LNEI05
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
       USE PBL_MIX_MOD,    ONLY     : GET_FRAC_OF_PBL,  GET_PBL_TOP_L
@@ -4775,7 +4776,7 @@
       ! Overwrite CANADA w/ CAC       (anthro only   ) SO2 emissions
       !-----------------------------------------------------------------
       ! Note that we:
-      ! Overwrite ASIA w/ STREETS and EUROPE w/ EMEP 
+      ! Overwrite ASIA w/ STREETS and EUROPE w/ EMEP and Australia w/ NPI
       !  in READ_ANTHRO_SOx.
       !
       ! In both cases, SO4 is a fraction of provided SO2 (except for
@@ -4882,7 +4883,7 @@
 
             !-----------------------------------------------------------
             ! Default SO2 from GEIA or EDGAR (w/ optional STREETS for 
-            ! ASIA, and EMEP for Europe)
+            ! ASIA, and EMEP for Europe, and NPI for Australia)
             !-----------------------------------------------------------
             DO L = 1, NOXLEVELS
                SO2an(I,J,L) = ESO2_an(I,J,L)
@@ -5260,7 +5261,7 @@
             !-----------------------------------------------------------
             ! Default SO4 from GEIA, or (as a fraction of SO2) from 
             ! EDGAR w/ optional STREETS for S.E.-ASIA, and optional
-            ! EMEP for Europe
+            ! EMEP for Europe and optional NPI for Australia
             !-----------------------------------------------------------
             DO L = 1, NOXLEVELS
                SO4an(I,J,L) = ESO4_an(I,J,L)
@@ -6451,6 +6452,9 @@
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,          ONLY : LFUTURE,         LEDGARSOx
       USE LOGICAL_MOD,          ONLY : LSTREETS,        LEMEP
+      USE LOGICAL_MOD,          ONLY : LNPI
+      USE NPI_ANTHRO_MOD,       ONLY : GET_AUSTRALIA_MASK
+      USE NPI_ANTHRO_MOD,       ONLY : GET_NPI_ANTHRO
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
       USE TIME_MOD,             ONLY : GET_YEAR
@@ -6496,6 +6500,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  08 Nov 2012 - J.A. Fisher - Added NPI emissions over Australia
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6573,6 +6578,20 @@
                      ! Streets 2006 includes biofuels.
                      IF ( SCALEYEAR >= 2006 ) ESO2_bf(I,J) = 0d0
 
+                  ENDIF
+               ENDIF
+
+               ! If we are using NPI emissions over Australia...
+![eml Not if historical
+               IF ( LNPI .and. .not. LHIST ) THEN
+!eml]
+                  ! If we are over the Australia region ...
+                  IF ( GET_AUSTRALIA_MASK( I, J ) > 0d0 ) THEN
+
+                     ! Overwrite EDGAR SO2 w/ NPI [kg SO2/s]
+                     EDG_SO2 = GET_NPI_ANTHRO( I,      J, 
+     &                                             IDTSO2, KG_S=.TRUE. )
+                     
                   ENDIF
                ENDIF
 
@@ -6728,6 +6747,22 @@
 
                   ! Overwrite GEIA SO2 w/ David Streets' SO2 [kg SO2/s]
                   ESO2_an(I,J,1) = GET_STREETS_ANTHRO( I, J, IDTSO2, 
+     &                                                 KG_S=.TRUE. )
+
+                  ! Zero 2nd level of emissions
+                  ESO2_an(I,J,2) = 0d0
+
+               ENDIF
+            ENDIF
+
+            ! If we are using NPI emissions
+            IF ( LNPI ) THEN
+
+               ! If we are over the SE Asia region
+               IF ( GET_AUSTRALIA_MASK( I, J ) > 0d0 ) THEN
+
+                  ! Overwrite GEIA SO2 w/ NPI SO2 [kg SO2/s]
+                  ESO2_an(I,J,1) = GET_NPI_ANTHRO( I, J, IDTSO2, 
      &                                                 KG_S=.TRUE. )
 
                   ! Zero 2nd level of emissions
@@ -7652,9 +7687,11 @@
       USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an
       USE LOGICAL_MOD,          ONLY : LFUTURE,         LSTREETS
-      USE LOGICAL_MOD,          ONLY : LEMEP
+      USE LOGICAL_MOD,          ONLY : LEMEP,           LNPI
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
+      USE NPI_ANTHRO_MOD,       ONLY : GET_AUSTRALIA_MASK
+      USE NPI_ANTHRO_MOD,       ONLY : GET_NPI_ANTHRO
       USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
@@ -7684,6 +7721,7 @@
 !  (9 ) Now check if NH3 Streets is available (phs, 12/10/08)  
 !  (10) Bug fix -- STREETS needs to be PRIVATE (dkh, bmy, 3/5/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  08 Nov 2012 - J.A. Fisher - Added NPI emissions for Australia
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7757,6 +7795,12 @@
                IF ( .not. ( STREETS < 0d0 ) )
      $              ENH3_an(I,J) = STREETS
                
+            ENDIF
+         ENDIF
+
+         IF ( LNPI ) THEN
+            IF ( GET_AUSTRALIA_MASK(I,J) > 0d0) THEN
+               ENH3_an(I,J) = GET_NPI_ANTHRO(I,J,IDTNH3,KG_S=.TRUE.)
             ENDIF
          ENDIF
 

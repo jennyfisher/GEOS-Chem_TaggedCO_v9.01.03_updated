@@ -56,6 +56,7 @@
 !  26 Fev 2010 - Fabien P.   - Add scaling for isoprene and Nox emissions
 !  07 Feb 2011 - R. Yantosca - Now use EPA/NEI99 biofuel emissions when
 !                              EPA/NEI05 anthro emissions are selected.
+!  11 Nov 2012 - J.A. Fisher - Added NPI emissions for Australia
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -110,6 +111,7 @@
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO_05x0666
+      USE NPI_ANTHRO_MOD,         ONLY : EMISS_NPI_ANTHRO
       USE RETRO_MOD,              ONLY : EMISS_RETRO
       USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
       USE SEASALT_MOD,            ONLY : EMISSSEASALT
@@ -175,6 +177,7 @@
 !  17 Aug 2011 - R. Yantosca - Added call to RETRO anthro emissions
 !  07 Feb 2012 - M. Payer    - Added call to read PARANOX look up tables
 !  22 Mar 2012 - M. Payer    - Added call to EMISSC2H6
+!  08 Nov 2012 - J.A. Fisher - Added call to EMISS_NPI_ANTHRO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -327,6 +330,14 @@
 #endif
          ENDIF
 
+         ! Read NPI (Australia) emissions once per year
+         IF ( LNPI .and. ITS_A_NEW_YEAR()  ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL EMISS_NPI_ANTHRO(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_NPI_ANTHRO
+#endif
+
          ! Read NEI2005 (USA) emissions
          IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
@@ -460,6 +471,14 @@
 #endif
 #endif
          ENDIF
+
+         ! Read NPI (Australia) emissions once per year
+         IF ( LNPI .and. ITS_A_NEW_YEAR()  ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL EMISS_NPI_ANTHRO(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_NPI_ANTHRO
+#endif
 
          ! Read EDGAR emissions once per month
          IF ( ITS_A_NEW_MONTH() ) THEN
@@ -643,6 +662,14 @@
 #endif
 #endif
          ENDIF
+
+         ! Read NPI (Australia) emissions once per year
+         IF ( LNPI .and. ITS_A_NEW_YEAR()  ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL EMISS_NPI_ANTHRO(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_NPI_ANTHRO
+#endif
 
          ! Read EDGAR emissions once per month
          IF ( ITS_A_NEW_MONTH() ) THEN
@@ -878,6 +905,14 @@
 #endif
 #endif
          ENDIF
+
+         ! Read NPI (Australia) emissions once per year
+         IF ( LNPI .and. ITS_A_NEW_YEAR()  ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL EMISS_NPI_ANTHRO(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_NPI_ANTHRO
+#endif
 
          ! Read EPA (USA) emissions once per month
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )

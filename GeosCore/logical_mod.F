@@ -65,6 +65,7 @@
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
 !  26 Mar 2012 - R. Yantosca - Add USE_OLSON_2001 switch, which will use the
 !                              newer Olson 2001 land map & drydep inputs
+!  08 Nov 2012 - J.A. Fisher - Added LNPI
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -133,6 +134,7 @@
       LOGICAL :: LMONOT          ! Use old 
       LOGICAL :: LNEI99          ! Use EPA 1999 regional emissions?
       LOGICAL :: LNEI05          ! Use EPA 2005 regional emissions?
+      LOGICAL :: LNPI            ! Use NPI Australian regional emissions
       LOGICAL :: LSHIPSO2        ! Use SO2 from ship emissions?
       LOGICAL :: LSOILNOX        ! Use soil NOx emissions
       !FP_ISOP (6/2009) LFERTILIZERNOX

@@ -30,11 +30,12 @@
       USE LOGICAL_MOD,        ONLY : LEDGARSHIP,       LARCSHIP
       USE LOGICAL_MOD,        ONLY : LEMEPSHIP,        LVISTAS
       USE LOGICAL_MOD,        ONLY : LICARTT,          LNEI05
-      USE LOGICAL_MOD,        ONLY : LRETRO
+      USE LOGICAL_MOD,        ONLY : LRETRO,           LNPI
       USE RETRO_MOD,          ONLY : GET_RETRO_ANTHRO
       USE C2H6_MOD,           ONLY : GET_C2H6_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
+      USE NPI_ANTHRO_MOD,     ONLY : GET_AUSTRALIA_MASK,  GET_NPI_ANTHRO
       USE LOGICAL_MOD,        ONLY : LICOADSSHIP !(cklee, 6/30/09)
                               
       USE STREETS_ANTHRO_MOD, ONLY : GET_SE_ASIA_MASK
@@ -147,6 +148,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  22 Mar 2012 - M. Payer    - Update for C2H6. RETRO ethane emissions are too
 !                              low so we will use Yaping Xiao's offline emiss.
+!  08 Nov 2012 - J.A. Fisher - Added NPI emissions for Australia
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,7 +163,7 @@
       REAL*8  :: XEMISRN(NOXLEVELS)
       REAL*8  :: BRAVO, EPA_NEI, EMEP,   EDGAR, STREETS
       REAL*8  :: CAC,   SHIP,    VISTAS, NEI05
-      REAL*8  :: RETRO
+      REAL*8  :: RETRO, NPI
       REAL*8  :: C2H6_ANTHRO
 
       !=================================================================
@@ -366,6 +368,40 @@
                ENDIF
             ENDIF
 
+
+            !-----------------------------------------------------------
+            ! Get NOx from the NPI inventory (Australia)
+            !-----------------------------------------------------------
+
+            ! If we are using NPI emissions
+![eml
+            IF ( LNPI .and. .not. LHIST ) THEN
+!eml]
+               ! If we are over the Australian region
+               IF ( GET_AUSTRALIA_MASK( I, J ) > 0d0 ) THEN
+
+                  ! Put all emissions into 1st level
+                  IF ( LL == 1 ) THEN
+
+                     ! Get David Streets' emissions for NOx [molec/cm2/s]
+                     NPI = GET_NPI_ANTHRO( I, J, NN, 
+     &                                             MOLEC_CM2_S=.TRUE. )
+
+                     ! Apply time-of-day factor
+                     NPI = NPI * TODX
+
+                     ! Replace base emissions with NPI
+                     EMX(LL) = NPI * 
+     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+            
+                  ELSE 
+            
+                     ! Zero EDGAR emissions in the 2nd level 
+                     EMX(LL) = 0d0                   
+                  
+                  ENDIF
+               ENDIF
+            ENDIF
 
             !-----------------------------------------------------------
             ! Get NOx from BRAVO inventory over MEXICO
@@ -731,6 +767,34 @@
             ENDIF
          ENDIF
 
+
+         !--------------------------------------------------------------
+         ! Get other emissions from NPI inventory over Australia 
+         !--------------------------------------------------------------
+
+         ! If we are using David Streets' emissions ...
+         IF ( LNPI ) THEN
+
+            ! If we are over the Australian region ...
+            IF ( GET_AUSTRALIA_MASK( I, J ) > 0d0 ) THEN
+         
+               ! Get NPI emissions 
+               NPI = GET_NPI_ANTHRO( I, J, NN, 
+     &                                       MOLEC_CM2_S=.TRUE. )
+         
+               ! -1 indicates tracer NN does not have BRAVO emissions
+               IF ( .not. ( NPI < 0d0 ) ) THEN
+
+                  ! Apply time-of-day factor
+                  NPI = NPI * TODX
+
+                  ! Convert from molec/cm2/s to kg/box/timestep in order
+                  ! to be in the proper units for EMISRR array
+                  EMX(1) = NPI * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+
+               ENDIF
+            ENDIF
+         ENDIF
 
          !--------------------------------------------------------------
          ! Get CO from BRAVO inventory over MEXICO
