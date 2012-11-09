@@ -94,8 +94,7 @@
       !=================================================================
       ! GET_AUSTRALIA_MASK begins here!
       !=================================================================
-!!!! Temporary kludge - no Australia mask for now - do we need one? (jaf, 11/8/12)
-!      THISMASK = MASK_AUSTRALIA(I,J)
+      THISMASK = MASK_AUSTRALIA(I,J)
 
       END FUNCTION GET_AUSTRALIA_MASK
 !EOC
@@ -309,7 +308,7 @@
          ! File name
 !!!! Temporary kludge - not in data directory yet (jaf, 11/8/12)
 !         FILENAME  = TRIM( DATA_DIR_1x1 ) // 'NPI_201211/NPI' // 
-          FILENAME  = TRIM( DATA_DIR_1x1 ) // 'NPI_201211/NPI' // 
+          FILENAME  = '/home/574/jaf574/data/NPI/NPI' //
      &                SYEAR // '-' // TRIM( SNAME ) // 
      &                'generic.1x1'
 
@@ -556,43 +555,43 @@
       ! READ_AUSTRALIA_MASK begins here!
       !=================================================================
 
-!!!! Temporary kludge - no Australia mask for now - do we need one? (jaf, 11/8/12)
-!
-!      TAU2000 = GET_TAU0(1,1,2000)
-!
-!      ! File name
-!      FILENAME  = TRIM( DATA_DIR_1x1 ) // 
-!     &            'NPI_201211/AustraliaMask.geos.1x1'
-!
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
-!
-!      ! Echo info
-!      WRITE( 6, 100 ) TRIM( FILENAME )
-! 100  FORMAT( '     - READ_AUSTRALIA_MASK: Reading ', a )
-!
-!      ! Read data [unitless]
-!      CALL READ_BPCH2( FILENAME, 'LANDMAP', 2, 
-!     &                 TAU2000,   I1x1,     J1x1-1,     
-!     &                 1,         ARRAY,    QUIET=.TRUE. ) 
-!
-!      ! Cast to REAL*8 before regridding
-!      GENERIC_1x1(:,:,1) = ARRAY(:,:,1)
-!
-!      ! Save the 1x1 China mask for future use
-!      MASK_AUSTRALIA_1x1(:,:) = GENERIC_1x1(:,:,1)
-!
-!      ! Regrid from GENERIC 1x1 to current model resolution [unitless]
-!      INGRID => GENERIC_1x1(:,:,1)
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,        J1x1-1, 
-!     &                    INGRID,     MASK_AUSTRALIA, PERAREA=0,
-!     &                    netCDF=.TRUE.                       )
-!
-!      ! Free pointer
-!      NULLIFY( INGRID )
-!
-!      WHERE ( MASK_AUSTRALIA > 0D0 ) MASK_AUSTRALIA = 1D0
+      TAU2000 = GET_TAU0(1,1,2000)
+
+      ! File name
+!!!! Temporary kludge - not in data directory yet (jaf, 11/8/12)
+!      FILENAME  = TRIM( DATA_DIR_1x1 ) // 'NPI_201211/'
+      FILENAME  = '/home/574/jaf574/data/NPI/' //
+     &            'AustraliaMask.generic.1x1'
+
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - READ_AUSTRALIA_MASK: Reading ', a )
+
+      ! Read data [unitless]
+      CALL READ_BPCH2( FILENAME, 'LANDMAP', 2, 
+     &                 TAU2000,   I1x1,     J1x1-1,     
+     &                 1,         ARRAY,    QUIET=.TRUE. ) 
+
+      ! Cast to REAL*8 before regridding
+      GENERIC_1x1(:,:,1) = ARRAY(:,:,1)
+
+      ! Save the 1x1 China mask for future use
+      MASK_AUSTRALIA_1x1(:,:) = GENERIC_1x1(:,:,1)
+
+      ! Regrid from GENERIC 1x1 to current model resolution [unitless]
+      INGRID => GENERIC_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,        J1x1-1, 
+     &                    INGRID,     MASK_AUSTRALIA, PERAREA=0,
+     &                    netCDF=.TRUE.                       )
+
+      ! Free pointer
+      NULLIFY( INGRID )
+
+      WHERE ( MASK_AUSTRALIA > 0D0 ) MASK_AUSTRALIA = 1D0
 
       END SUBROUTINE READ_AUSTRALIA_MASK
 !EOC
