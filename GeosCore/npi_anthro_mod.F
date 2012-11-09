@@ -292,7 +292,7 @@
             SNAME = 'CO'
             SNo = 4
          ELSEIF ( SPECIES .eq. 3 ) THEN
-            SNAME = 'SOx'
+            SNAME = 'SO2'
             SNo = 26
          ELSEIF ( SPECIES .eq. 4 ) THEN
             SNAME = 'NH3'
@@ -307,9 +307,9 @@
          ! File name
 !!!! Temporary kludge - not in data directory yet (jaf, 11/8/12)
 !         FILENAME  = TRIM( DATA_DIR_1x1 ) // 'NPI_201211/NPI' // 
-          FILENAME  = '/home/574/jaf574/data/NPI/NPI' //
+          FILENAME  = '/home/574/jaf574/data/NPI/NPI-' //
      &                SYEAR // '-' // TRIM( SNAME ) // 
-     &                'generic.1x1'
+     &                '.generic.1x1'
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
@@ -703,5 +703,5 @@
 
       END SUBROUTINE CLEANUP_NPI_ANTHRO
 !EOC
-      END MODULE CAC_ANTHRO_MOD
+      END MODULE NPI_ANTHRO_MOD
 

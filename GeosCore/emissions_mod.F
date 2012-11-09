@@ -337,6 +337,7 @@
 #else
             CALL EMISS_NPI_ANTHRO
 #endif
+         ENDIF
 
          ! Read NEI2005 (USA) emissions
          IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
@@ -479,6 +480,7 @@
 #else
             CALL EMISS_NPI_ANTHRO
 #endif
+         ENDIF
 
          ! Read EDGAR emissions once per month
          IF ( ITS_A_NEW_MONTH() ) THEN
@@ -670,6 +672,7 @@
 #else
             CALL EMISS_NPI_ANTHRO
 #endif
+         ENDIF
 
          ! Read EDGAR emissions once per month
          IF ( ITS_A_NEW_MONTH() ) THEN
@@ -913,6 +916,7 @@
 #else
             CALL EMISS_NPI_ANTHRO
 #endif
+         ENDIF
 
          ! Read EPA (USA) emissions once per month
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
