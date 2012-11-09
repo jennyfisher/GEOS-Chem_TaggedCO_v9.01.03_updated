@@ -232,7 +232,6 @@
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,       ONLY : LFUTURE
       USE TIME_MOD,          ONLY : GET_YEAR
-      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
       USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
       USE CMN_SIZE_MOD            ! Size parameters
       USE CMN_O3_MOD              ! FSCALYR

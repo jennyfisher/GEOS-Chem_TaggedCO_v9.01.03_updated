@@ -415,7 +415,8 @@ cleanup.o                   : cleanup.F                                      \
                               icoads_ship_mod.o       tpcore_fvdas_mod.o     \
                               tpcore_geos5_window_mod.o                      \
                               tpcore_geos57_window_mod.o                     \
-                              retro_mod.o             strat_chem_mod.o
+                              retro_mod.o             strat_chem_mod.o       \
+                              npi_anthro_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
@@ -558,7 +559,8 @@ emfossil.o                  : emfossil.F                                     \
                               logical_mod.o           nei2005_anthro_mod.o   \
                               streets_anthro_mod.o    tracer_mod.o           \
                               tracerid_mod.o          vistas_anthro_mod.o    \
-			      retro_mod.o             c2h6_mod.o
+			      retro_mod.o             c2h6_mod.o             \
+                              npi_anthro_mod.o
 
 emissdr.o                   : emissdr.F                                      \
                               acetone_mod.o           aircraft_nox_mod.o     \
@@ -583,7 +585,8 @@ emissions_mod.o             : emissions_mod.F                                \
                               retro_mod.o             RnPbBe_mod.o           \
                               seasalt_mod.o           streets_anthro_mod.o   \
                               sulfate_mod.o           tagged_co_mod.o        \
-                              tracer_mod.o            vistas_anthro_mod.o
+                              tracer_mod.o            vistas_anthro_mod.o    \
+                              npi_anthro_mod.o
 
 epa_nei_mod.o               : epa_nei_mod.F                                  \
                               future_emissions_mod.o  logical_mod.o          \
@@ -853,6 +856,10 @@ nei2005_anthro_mod.o        : nei2005_anthro_mod.F                           \
 
 NOABS.o                     : NOABS.F
 
+npi_anthro_mod.o            : npi_anthro_mod.F                               \
+                              future_emissions_mod.o  logical_mod.o          \
+                              tracerid_mod.o          tracer_mod.o    
+
 ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
                               dao_mod.o               depo_mercury_mod.o     \
                               diag03_mod.o            logical_mod.o          \
@@ -1023,7 +1030,7 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               streets_anthro_mod.o    tracerid_mod.o         \
                               tracer_mod.o            tropopause_mod.o       \
                               uvalbedo_mod.o          vdiff_pre_mod.o        \
-                              wetscav_mod.o           
+                              wetscav_mod.o           npi_anthro_mod.o
 
 sunparam.o                  : sunparam.F
 
