@@ -66,6 +66,7 @@
 !  26 Mar 2012 - R. Yantosca - Add USE_OLSON_2001 switch, which will use the
 !                              newer Olson 2001 land map & drydep inputs
 !  08 Nov 2012 - J.A. Fisher - Added LNPI
+!  22 Nov 2012 - J.A. Fisher - Added LBF_WITH_FF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -200,6 +201,9 @@
       LOGICAL :: LDYNOCEAN       ! Use dynamic ocean Hg model?
       LOGICAL :: LPREINDHG       ! Preindustrial mercury simulation (eds)
       LOGICAL :: LGTMM           ! GTMM soil model (ccc, 9/16/09)
+
+      !%%%% For the CO offline simulation only %%%%
+      LOGICAL :: LBF_WITH_FF
 
       !%%%% For the CH4 offline simulation only %%%%
       LOGICAL :: LGAO            ! Use gas & oil emissions?

@@ -128,6 +128,8 @@
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  23 Oct 2012 - J. Fisher   - Fix size allocation of CO_PRODS, CO_LOSSS
+!  22 Nov 2012 - J.A. Fisher - Now allow biofuel emissions to be added to
+!                              regional fossil fuel emissions
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -521,6 +523,8 @@
 !  (26) IDBCO is now defined in tracerid_mod.f (fp, 6/09)
 !  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emission option
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  22 Nov 2012 - J.A. Fisher - Now allow biofuel emissions to be added to
+!                              regional fossil fuel emissions
 !******************************************************************************
 !
       ! References to F90 modules
@@ -535,6 +539,7 @@
       USE LOGICAL_MOD,  ONLY : LBIOMASS,      LBIOFUEL
       ! Add switches for biogenic MEGAN (jaf, 3/10/09)
       USE LOGICAL_MOD,  ONLY : LBIOGENIC,        LMEGAN
+      USE LOGICAL_MOD,  ONLY : LBF_WITH_FF
       ! Add MEGAN biogenic routines (jaf, 3/10/09)
       USE MEGAN_MOD,    ONLY : GET_EMISOP_MEGAN, GET_EMMONOT_MEGAN
       USE MEGANUT_MOD,  ONLY : XLTMMP
@@ -734,6 +739,8 @@
       ! (2 ) Now use IDBFCO to index the proper element of the 
       !       biofuel burning array (bmy, 6/8/01).
       ! (3 ) Now add biofuel burning to tagged tracer #13 (bmy, 6/14/01)
+      ! (4 ) Now add biofuel emissions to fossil fuel emissions if
+      !      so desired (jaf, 11/22/12)
       !=================================================================
       IF ( LBIOFUEL ) THEN
 !$OMP PARALLEL DO
@@ -756,11 +763,17 @@
             ! %%% then comment out this IF block.  If you don't you can
             ! %%% get an array-out-of-bounds error (bmy, 6/11/08)
             IF ( LSPLIT ) THEN
+               ! Add biofuel CO to fossil fuel CO by region (jaf, 11/22/12)
+               IF ( LBF_WITH_FF ) THEN
+                  N            = FF_REGION(I,J)
+                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO
+               ELSE
 !---------------------------------------------------------
 ! Reset tagged CO regions (jaf, 17 Oct 12)
-!               STT(I,J,1,13) = STT(I,J,1,13) + E_CO
-               STT(I,J,1,21) = STT(I,J,1,21) + E_CO
+!                  STT(I,J,1,13) = STT(I,J,1,13) + E_CO
+                  STT(I,J,1,21) = STT(I,J,1,21) + E_CO
 !---------------------------------------------------------
+               ENDIF
             ENDIF
          ENDDO
          ENDDO

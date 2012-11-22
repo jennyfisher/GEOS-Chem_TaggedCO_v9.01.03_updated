@@ -128,6 +128,8 @@
 !  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
 !                              so that we can define it with findFreeLun
 !  09 Nov 2012 - J.A. Fisher - Added support for NPI emissions for Australia
+!  22 Nov 2012 - J.A. Fisher - Added ability to add biofuels to fossil fuel
+!			       regions in tagged CO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -294,6 +296,9 @@
 
          ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN !Ray Nassar
             CALL READ_CO2_SIM_MENU( am_I_Root )
+                                    
+         ELSE IF ( INDEX( LINE, 'CO SIM MENU'     ) > 0 ) THEN !J.A. Fisher
+            CALL READ_CO_SIM_MENU( am_I_Root )
                                     
          ELSE IF ( INDEX( LINE, 'GAMAP MENU'       ) > 0 ) THEN
             CALL READ_GAMAP_MENU( am_I_Root )                 
@@ -2311,6 +2316,78 @@
  120  FORMAT( A, f6.2 )
 
       END SUBROUTINE READ_EMISSIONS_MENU
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_co_sim_menu
+!
+! !DESCRIPTION: Subroutine READ\_CO\_SIM\_MENU reads the CO SIM MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_CO_SIM_MENU( am_I_Root )
+!
+! !USES:
+!
+      USE LOGICAL_MOD, ONLY : LBF_WITH_FF
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM
+
+      USE CMN_SIZE_MOD                   ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+! 
+! !REVISION HISTORY: 
+!  22 Nov 2012 - J.A. Fisher - Initial version (based on CO2)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC
+
+      !=================================================================
+      ! READ_CO_SIM_MENU begins here!
+      !=================================================================
+
+      ! Location for error messages
+      LOC = 'READ_CO_SIM_MENU ("input_mod.f")'
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN 
+         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      ! Split biofuels regionally and add to fossil fuel regions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO_sim_menu:1' )
+      READ( SUBSTRS(1:N), * ) LBF_WITH_FF
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      IF (ITS_A_TAGCO_SIM() ) THEN
+        IF ( am_I_Root ) THEN
+          WRITE(6,'(/,a)') 'CO SIMULATION MENU ' //
+     &         '(overwrites any other settings related to CO)'
+          WRITE(6,'(  a)') '-------------------------------------'
+          WRITE(6,100) '   Add biofuels to fossil fuels?:',LBF_WITH_FF
+        ENDIF
+      ENDIF      
+
+      ! FORMAT statements
+ 100  FORMAT( A, L5 )
+
+      END SUBROUTINE READ_CO_SIM_MENU
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -6696,6 +6773,9 @@
       LWARWICK_VSLS  = .FALSE.
       LSSABr2        = .FALSE.
       LFIX_PBL_BRO   = .FALSE.
+
+      ! For tagged CO (jaf, 11/22/12)
+      LBF_WITH_FF    = .FALSE.
       
       ! Initialize counters
       CT1            = 0
