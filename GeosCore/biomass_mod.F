@@ -89,6 +89,7 @@
 !  (7 ) Updates to remove all hard-wired order. (fp, 2/2/10)
 !  (8)  Updates to include GFED3 (psk, 1/5/11)
 !  14 Feb 2012 - M. Payer    - Add modifications for CH4 simulation (K. Wecht)
+!  02 Jan 2013 - J. Mao & J. Fisher - Add modifications for FINN
 !******************************************************************************
 !
       USE CMN_SIZE_MOD               ! Size parameters
@@ -208,6 +209,7 @@
 !        chemistry mechanisms. This used to be done in gc_biomass_mod.f but 
 !        then is not used for GFED2, FLAMBE, etc. (jaf, mak, 11/6/09)
 !  27 Jul 2011 - R. Yantosca - Make sure that IDBCO > 0 before using it
+!  02 Jan 2013 - J. Mao & J. Fisher - Add calls to FINN
 !******************************************************************************
 !
       ! References to F90 modules
@@ -219,9 +221,11 @@
       USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_SO2
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_COMPUTE_BIOMASS
       USE GFED3_BIOMASS_MOD, ONLY : GFED3_COMPUTE_BIOMASS
+      USE FINN_BIOMASS_MOD,  ONLY : FINN_COMPUTE_BIOMASS
       USE LOGICAL_MOD,       ONLY : LBIOMASS, LGFED2BB, LGFED3BB
       USE LOGICAL_MOD,       ONLY : L8DAYBB,  LSYNOPBB, L3HRBB
       USE LOGICAL_MOD,       ONLY : LDAYBB3,  L3HRBB3
+      USE LOGICAL_MOD,       ONLY : LFINNBB,  L1DAYBBF
       USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,        ONLY : ITS_A_CO2_SIM
       USE TRACER_MOD,        ONLY : ITS_A_H2HD_SIM
@@ -250,6 +254,7 @@
       LOGICAL, SAVE              :: USE_GFED
       LOGICAL, SAVE              :: USE_GFED2
       LOGICAL, SAVE              :: USE_GFED3
+      LOGICAL, SAVE              :: USE_FINN
       INTEGER                    :: I,       J,       N,      N_BIOB
       REAL*8                     :: BXHT_CM, DTSRCE
       
@@ -267,6 +272,7 @@
             USE_GFED2 = LGFED2BB  .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
             USE_GFED3 = LGFED3BB  .or. LDAYBB3 .or. L3HRBB3
             USE_GFED  = USE_GFED2 .or. USE_GFED3
+            USE_FINN  = LFINNBB   .or. L1DAYBBF
          ENDIF
          
          ! Define diagnostic flags
@@ -305,6 +311,25 @@
 
             ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
             CALL GFED3_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
+
+            ! Irrespective of inventory type, we need to scale biomass
+            ! CO to account for CO production from VOC's that are not
+            ! explicitly carried in the chemistry mechanisms. This used
+            ! to be done in gc_biomass_mod.f but then is not used for
+            ! GFED3, FLAMBE, etc. (jaf, mak, 2/6/09)
+            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
+            ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+               BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
+            ENDIF
+
+         !==============================================================
+         ! FINN updates BIOMASS if needed (jmao & jafisher, 1/2/13)
+         !==============================================================
+         ELSE IF ( USE_FINN ) THEN
+
+            ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
+            CALL FINN_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
 
             ! Irrespective of inventory type, we need to scale biomass
             ! CO to account for CO production from VOC's that are not

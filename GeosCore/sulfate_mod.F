@@ -130,6 +130,7 @@
 !  01 Mar 2012 - R. Yantosca   - Now reference new grid_mod.F90
 !  13 Mar 2012 - M. Cooper     - Changed regrid algorithm to map_a2a
 !  08 Nov 2012 - J.A. Fisher   - Now added NPI emissions for Australia
+!  03 Jan 2013 - J. Mao & J. Fisher - Modified to include FINN BB
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3993,6 +3994,7 @@
       USE TRACERID_MOD,      ONLY : IDTSO4,     IDTNH3
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD, ONLY : GFED3_IS_NEW
+      USE FINN_BIOMASS_MOD,  ONLY : FINN_IS_NEW
       USE LOGICAL_MOD,       ONLY : LANTHRO, LBIOFUEL
 
       USE CMN_SIZE_MOD            ! Size parameters
@@ -4032,6 +4034,7 @@
 !  (14) Add LBIOFUEL switch to properly turn off the biofuel emissions,
 !       READ_BIOFUEL_SO2, READ_BIOFUEL_NH3. (ccc, 7/16/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  03 Jan 2013 - J. Mao & J. Fisher - Added FINN biomass emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4128,7 +4131,7 @@
 
       ENDIF
 
-      IF(  ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or.
+      IF(  ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or. FINN_IS_NEW() .or.
      &       ITS_A_NEW_MONTH() ) .AND. 
      &     ( LBIOMASS )  ) THEN 
          CALL GET_BIOMASS_SO2

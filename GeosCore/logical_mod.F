@@ -67,6 +67,7 @@
 !                              newer Olson 2001 land map & drydep inputs
 !  08 Nov 2012 - J.A. Fisher - Added LNPI
 !  22 Nov 2012 - J.A. Fisher - Added LBF_WITH_FF
+!  02 Jan 2013 - J. Mao & J.A. Fisher - Added LFINNBB and L1DAYBBF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -145,6 +146,7 @@
       LOGICAL :: LAVHRRLAI       ! Use AVHRR leaf-area-indices?
       LOGICAL :: LGFED2BB        ! Use GFED2 biomass burning?
       LOGICAL :: LGFED3BB        ! Use GFED3 biomass burning?
+      LOGICAL :: LFINNBB         ! Use FINN biomass burning?
       LOGICAL :: LFUTURE         ! Use future-years emission scaling (GCAP)?
       LOGICAL :: LARCSHIP        ! Use ARCTAS ship emissions?
       LOGICAL :: LEMEPSHIP       ! Use EMEP ship emissions?
@@ -154,6 +156,7 @@
       LOGICAL :: LSYNOPBB        ! Use GFED2 synoptic biomass burning
       LOGICAL :: LDAYBB3         ! Use GFED3 daily biomass burning?
       LOGICAL :: L3HRBB3         ! Use GFED3 3-hr biomass burning?
+      LOGICAL :: L1DAYBBF        ! Use FINN daily biomass burning?
       LOGICAL :: LMODISLAI       ! MODIS LAI (mpb, 2009)
       LOGICAL :: LPECCA          ! PCEEA BVOC emission model (mpb,2009)
       LOGICAL :: LRETRO          ! RETRO anthropogenic emissions (wfr, 3/8/11)

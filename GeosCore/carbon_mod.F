@@ -175,6 +175,7 @@
 !  (27) Modified to include GFED3 (psk, 1/5/11)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  30 Jul 2012 - R. Yantosca - Modifications for grid-independence
+!  03 Jan 2013 - J. Mao & J. Fisher - Modified to include FINN BB emissions
 !******************************************************************************
 !
       USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
@@ -4027,6 +4028,7 @@ c
 !  (6 ) Now check that GFED2 has been updated if we do not use the annual
 !        Bond Biomass emission (phs, yc, 12/18/08)
 !  (7 ) Now reads monthly (eml, phs, 5/18/09)
+! 03 Jan 2013 - J. Mao & J. Fisher - Added switch for FINN BB emissions
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4038,6 +4040,7 @@ c
       USE TRACER_MOD,        ONLY : STT
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD, ONLY : GFED3_IS_NEW
+      USE FINN_BIOMASS_MOD,  ONLY : FINN_IS_NEW
       !USE TRACERID_MOD
 
       USE CMN_SIZE_MOD    ! Size parameters
@@ -4147,7 +4150,7 @@ c
       !-----------------------------------
       IF ( .not. USE_BOND_BIOBURN ) THEN
 
-         IF ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or. 
+         IF ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or. FINN_IS_NEW() .or.
      &        ITS_A_NEW_MONTH() ) THEN 
             CALL BIOMASS_CARB_GEOS
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BB_CRB_GEOS' )

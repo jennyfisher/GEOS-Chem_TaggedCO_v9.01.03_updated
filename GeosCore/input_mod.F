@@ -130,6 +130,7 @@
 !  09 Nov 2012 - J.A. Fisher - Added support for NPI emissions for Australia
 !  22 Nov 2012 - J.A. Fisher - Added ability to add biofuels to fossil fuel
 !			       regions in tagged CO
+!  02 Jan 2013 - J. Mao & J. Fisher - Added support for FINN BB emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1667,6 +1668,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  09 Nov 2012 - J.A. Fisher - Added support for NPI emissions for Australia
+!  02 Jan 2013 - J. Mao & J. Fisher - Added support for FINN BB emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1821,99 +1823,110 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
       READ( SUBSTRS(1:N), * ) L3HRBB3
 
-      ! Separator line
+      ! Separator line (start of FINN biomass emissions)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
 
-      ! Use aircraft NOx
+      ! Use monthly FINN biomass emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
+      READ( SUBSTRS(1:N), * ) LFINNBB
+
+      ! Use daily FINN biomass emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
+      READ( SUBSTRS(1:N), * ) L1DAYBBF
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
+
+      ! Use aircraft NOx
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
       READ( SUBSTRS(1:N), * ) LAIRNOX
 
       ! Use lightning NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
       ! Apply OTD-LIS local redistribution for lightning spatial and
       ! seasonal constraint
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
       READ( SUBSTRS(1:N), * ) LOTDLOC
 
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
       ! separate use fertilizer and soil NOx (fp, 06/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
       READ( SUBSTRS(1:N), * ) LFERTILIZERNOX
 
       !(FP, 15/12/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
       READ( SUBSTRS(1:N), * ) NOx_SCALING
 
       ! Separator line (start of ship emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
 
       ! Use ship EDGAR ship emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
       READ( SUBSTRS(1:N), * ) LEDGARSHIP
 
       ! Use ICOADS (NOx, SO2, CO) ship  emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
       READ( SUBSTRS(1:N), * ) LICOADSSHIP
 
       ! Use ship EMEP emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:47' )
       READ( SUBSTRS(1:N), * ) LEMEPSHIP
 
       ! Use ship SO2 Corbett emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:48' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use ship ARCTAS (SO2, CO2) emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
       READ( SUBSTRS(1:N), * ) LARCSHIP
 
       ! Use COOKE over North AMerica for BC/OC?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:47' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
       READ( SUBSTRS(1:N), * ) LCOOKE
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:48' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Use MODIS-derived LAI fields? (mpb,2009)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
       READ( SUBSTRS(1:N), * ) LMODISLAI
 
       ! Use historical emissions (EDGAR NOx/SO2 and Bond BC/OC) for 
       ! 1890-2000?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:53' )
       READ( SUBSTRS(1:N), * ) LHIST
       
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:54' )
       READ( SUBSTRS(1:N), * ) HISTYR
       CALL SET_HISTYR( HISTYR )
 
       ! Separator line (start of bromine emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:55' )
 
       ! Use the Warwick(2006), scenario 3? (400Gg/yr of CHBr3)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:53' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:56' )
       READ( SUBSTRS(1:N), * ) LWARWICK_VSLS
 
       ! Use sea-salt Br2 emissions? Currently Monahan w/ Yang et al. 2005
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:54' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:57' )
       READ( SUBSTRS(1:N), * ) LSSABr2
 
       ! Set PBL BrO concentrations equal to 1ppt during the day?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:55' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:58' )
       READ( SUBSTRS(1:N), * ) LFIX_PBL_BRO
 
       ! Bromine Emissions scaling
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:56' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:59' )
       READ( SUBSTRS(1:N), * ) Br_SCALING
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:57' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:60' )
 
       !=================================================================
       ! Error check logical flags
@@ -1967,6 +1980,8 @@
       LGFED3BB          = ( LGFED3BB       .and. LBIOMASS  )
       LDAYBB3           = ( LDAYBB3        .and. LBIOMASS  )
       L3HRBB3           = ( L3HRBB3        .and. LBIOMASS  )
+      LFINNBB           = ( LFINNBB        .and. LBIOMASS  )
+      L1DAYBBF          = ( L1DAYBBF       .and. LBIOMASS  )
 
       ! Other
       LLIGHTNOX         = ( LLIGHTNOX      .and. LEMIS     )
@@ -2172,6 +2187,39 @@
       ENDIF
 
       !=================================================================
+      ! Error check FINN switches (jafisher, 1/2/13)
+      !=================================================================
+      IF ( ( LGFED2BB .or. L8DAYBB  .or. LSYNOPBB  .or. L3HRBB  )  .AND.
+     &     ( LFINNBB  .or. L1DAYBBF  ) )  THEN
+
+         MSG = 'GFED2 and FINN emissions cannot both be turned on.'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+      IF ( ( LGFED3BB .or. LDAYBB3  .or. L3HRBB3 )  .AND.
+     &     ( LFINNBB  .or. L1DAYBBF  ) )  THEN
+
+         MSG = 'GFED3 and FINN emissions cannot both be turned on.'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      IF ( L1DAYBBF .AND. LFINNBB ) THEN
+         IF ( am_I_Root ) THEN
+            WRITE(6,'(/,a,/)') 
+     &         'Both monthly and daily FINN emissions selected: ' //
+     &         'Daily will be used!'
+         ENDIF
+      ENDIF
+
+      ! Array allocation, etc. through LFINNBB
+      IF ( L1DAYBBF .AND. .not. LFINNBB ) THEN
+         LFINNBB = .TRUE.
+         IF ( am_I_Root ) THEN
+            WRITE(6,'(/,a,/)') 
+     &         'Turning on FINN emissions to use daily FINN.'
+         ENDIF
+      ENDIF
+
+      !=================================================================
       ! Prioritize GFED2
       !=================================================================
       IF ( L3HRBB ) THEN
@@ -2287,6 +2335,11 @@
         WRITE( 6, 100 ) '    monthly GFED3 emissions?: ', LGFED3BB
         WRITE( 6, 100 ) '    daily GFED3 emission?   : ', LDAYBB3
         WRITE( 6, 100 ) '    3hr GFED3 emission?     : ', L3HRBB3
+        WRITE( 6, 100 ) 'Use FINN BIOMASS emissions? : ', 
+     &       LFINNBB .or.  L1DAYBBF
+        WRITE( 6, 100 ) '    monthly FINN emissions? : ', 
+     &       LFINNBB .and. .not. L1DAYBBF
+        WRITE( 6, 100 ) '    daily FINN emission?    : ', L1DAYBBF
         WRITE( 6, 100 ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
         WRITE( 6, 100 ) 'Use OTD-LIS local redist?   : ', LOTDLOC
         WRITE( 6, 100 ) 'Turn on AIRCRAFT NOx?       : ', LAIRNOX

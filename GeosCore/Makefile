@@ -302,7 +302,8 @@ biomass_mod.o               : biomass_mod.F                                  \
                               diag_mod.o              gc_biomass_mod.o       \
                               gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
                               logical_mod.o                                  \
-                              tracerid_mod.o          tracer_mod.o
+                              tracerid_mod.o          tracer_mod.o           \
+                              finn_biomass_mod.o
 
 BLKSLV.o                    : BLKSLV.F
 
@@ -347,7 +348,8 @@ carbon_mod.o                : carbon_mod.F                                   \
                               logical_mod.o           megan_mod.o            \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               tracer_mod.o            tropopause_mod.o       \
-                              vdiff_pre_mod.o         meganut_mod.o
+                              vdiff_pre_mod.o         meganut_mod.o          \
+                              finn_biomass_mod.o
 
 ch3i_mod.o                  : ch3i_mod.F                                     \
                               biofuel_mod.o           biomass_mod.o          \
@@ -416,7 +418,7 @@ cleanup.o                   : cleanup.F                                      \
                               tpcore_geos5_window_mod.o                      \
                               tpcore_geos57_window_mod.o                     \
                               retro_mod.o             strat_chem_mod.o       \
-                              npi_anthro_mod.o
+                              npi_anthro_mod.o        finn_biomass_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
@@ -597,6 +599,10 @@ fast_j.o                    : fast_j.F                                       \
                               dao_mod.o               toms_mod.o
 
 fertadd.o                   : fertadd.F               logical_mod.o
+
+finn_biomass_mod.o          : finn_biomass_mod.F                             \
+                              future_emissions_mod.o  logical_mod.o          \
+                              tracer_mod.o            tracerid_mod.o
 
 fjfunc.o                    : fjfunc.F
 
@@ -1030,7 +1036,8 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               streets_anthro_mod.o    tracerid_mod.o         \
                               tracer_mod.o            tropopause_mod.o       \
                               uvalbedo_mod.o          vdiff_pre_mod.o        \
-                              wetscav_mod.o           npi_anthro_mod.o
+                              wetscav_mod.o           npi_anthro_mod.o       \
+                              finn_biomass_mod.o
 
 sunparam.o                  : sunparam.F
 

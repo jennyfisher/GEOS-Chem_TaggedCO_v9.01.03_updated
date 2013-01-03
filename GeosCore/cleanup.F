@@ -47,6 +47,7 @@
       USE GC_BIOMASS_MOD,          ONLY : CLEANUP_GC_BIOMASS
       USE GFED2_BIOMASS_MOD,       ONLY : CLEANUP_GFED2_BIOMASS
       USE GFED3_BIOMASS_MOD,       ONLY : CLEANUP_GFED3_BIOMASS
+      USE FINN_BIOMASS_MOD,        ONLY : CLEANUP_FINN_BIOMASS
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GLOBAL_HNO3_MOD,         ONLY : CLEANUP_GLOBAL_HNO3
       USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
@@ -190,6 +191,7 @@
 !  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
 !  01 May 2012 - M. Payer    - Added calls for CLEANUP_GLOBAL_GRID and
 !                              CLEANUP_GRID
+!  02 Jan 2013 - J. Mao & J. Fisher - Add modifications for FINN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -234,6 +236,7 @@
       CALL CLEANUP_GC_BIOMASS
       CALL CLEANUP_GFED2_BIOMASS
       CALL CLEANUP_GFED3_BIOMASS
+      CALL CLEANUP_FINN_BIOMASS
       CALL CLEANUP_GLOBAL_CH4
       CALL CLEANUP_GLOBAL_HNO3
       CALL CLEANUP_GLOBAL_NO3
