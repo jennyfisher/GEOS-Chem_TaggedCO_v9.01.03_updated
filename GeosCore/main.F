@@ -1668,6 +1668,8 @@
       IF ( ITS_TIME_FOR_A1() ) THEN
          DATE = GET_A1_TIME()
          CALL GEOS57_READ_A1( DATE(1), DATE(2) )
+         ! (tmf, 1/4/2012) This should be turned on!
+         IF ( LMEGAN ) CALL UPDATE_T_DAY
       ENDIF
 
       !----------------------------------
