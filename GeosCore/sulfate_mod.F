@@ -7198,7 +7198,7 @@
 
          ! Regrid to current model resolution [kg/yr]
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, PERAREA=0,
+     &                       INGRID,     OUTGRID, PERAREA=1,
      &                       netCDF=.TRUE.                   )
 
          ! Free pointers
