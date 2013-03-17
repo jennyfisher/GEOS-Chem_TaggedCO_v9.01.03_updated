@@ -1432,6 +1432,18 @@
       ! Convert GEOS-5 PRECCON from [kg/m2/s] to [mm/day]
       IF ( PRESENT( PRECON ) ) PRECON = PRECON * 86400d0
 
+      ! Correction for GEOS_5 PBLH: (sajeev 6/8/12)
+      ! PBLH must be greater than a minimum mechanical mixing depth,
+      ! defined as 700*friction velocity
+      ! (koracin and berkowicz, 1988; Lin and McElroy, 2010)
+#if   defined( GEOS_5 )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         PBL(I,J) = max( PBL(I,J), 700d0*USTAR(I,J) )
+      ENDDO
+      ENDDO
+#endif
+
 #endif
 
       !=================================================================
