@@ -1101,6 +1101,16 @@
       PRECLSC = PRECLSC * 86400d0
       PRECTOT = PRECTOT * 86400d0
 
+      ! Correction for MERRA PBLH: (sajeev 6/8/12)
+      ! PBLH must be greater than a minimum mechanical mixing depth,
+      ! defined as 700*friction velocity
+      ! (koracin and berkowicz, 1988; Lin and McElroy, 2010)
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         PBLH(I,J) = max( PBLH(I,J), 700d0*USTAR(I,J) )
+      ENDDO
+      ENDDO
+
       !=================================================================
       ! ND67 diagnostic: A1 surface fields
       !=================================================================
