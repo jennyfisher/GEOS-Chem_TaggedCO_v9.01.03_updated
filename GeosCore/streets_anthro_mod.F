@@ -561,7 +561,7 @@
       IF (.NOT. IS_2006) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_527 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
             IF ( FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
 #else
             IF ( IS_WATER(I,J) ) SCALOC(I,J) = 0d0
@@ -1674,6 +1674,8 @@
             
             WHERE ( MASK_CHINA > 0 ) CO = TEMP
 
+            ! switch and scale
+            CO = CO * ONOFF( 1 )
 
          ENDIF
             
