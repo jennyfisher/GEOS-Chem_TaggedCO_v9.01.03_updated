@@ -152,7 +152,7 @@
       ENDDO
 
       DO J = 0, NJ-1
-         LAT(J+1) = GET_YMID(J+JMIN,1,1)
+         LAT(J+1) = GET_YMID(I,J+JMIN,1)
       ENDDO
 
       DO I = 1,2
