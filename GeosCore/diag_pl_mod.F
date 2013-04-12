@@ -318,7 +318,10 @@
             COEFMEM(M,F) = FAM_COEF(M,F)
 
             ! Store each family member in IFAMMEM
-            DO J = 1, NSPEC(NCS)
+            ! Allow this to include inactive species; e.g. CH4 (jaf,
+            ! 4/12/13)
+            !DO J = 1, NSPEC(NCS)
+            DO J = 1, NTSPEC(NCS)
                IF ( NAMEGAS(J) == FAM_MEMB(M,F) ) IFAMMEM(M,F) = J
             ENDDO
 
