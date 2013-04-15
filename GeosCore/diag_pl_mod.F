@@ -23,11 +23,13 @@
 !
       ! Scalars
       LOGICAL, PUBLIC              :: DO_SAVE_PL
+      LOGICAL, PUBLIC              :: DO_SAVE_PCO
       INTEGER, PUBLIC              :: TAGO3_PL_YEAR
 
       ! Arrays
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
-      REAL*8,  PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD65   (:,:,:,:)
+      REAL*8,  PUBLIC, ALLOCATABLE :: FAM_PL (:,:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: PCO_ARR(:,:,:,:)
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -666,8 +668,95 @@
       !=================================================================
 
       IF ( DO_SAVE_O3 ) CALL DIAG20( am_I_Root )
+      IF ( DO_SAVE_PCO ) CALL SAVE_CO_PROD( am_I_Root )
 
       END SUBROUTINE DO_DIAG_PL
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SAVE_CO_PROD
+!
+! !DESCRIPTION: Subroutine SAVE_CO_PROD computes separate production rates for
+!   CO from CH4 and NMVOC to be used in subsequent tagged CO simulations.
+!   P(CO) written to disk in diag3.F
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SAVE_CO_PROD( am_I_Root )
+!
+! !USES:
+!
+      USE TIME_MOD,      ONLY : TIMESTAMP_STRING
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! LD65
+      USE COMODE_LOOP_MOD     ! NFAMILIES
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root      ! Is this the root CPU?
+! 
+! !REVISION HISTORY:
+!  15 Apr 2013 - J.A. Fisher - Initial version, based on DIAG20
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: I, J, L, N
+      INTEGER            :: N_PCO, N_LCH4
+      REAL*4             :: PCO_TOT, LCH4, PCO_CH4, PCO_NMVOC
+      CHARACTER(LEN=16)  :: STAMP 
+      CHARACTER(LEN=255) :: TMPNAME
+
+      !=================================================================
+      ! SAVE_CO_PROD begins here!
+      !=================================================================
+
+      ! Echo info
+      STAMP = TIMESTAMP_STRING()
+      IF ( am_I_Root ) WRITE( 6, 120 ) STAMP
+ 120  FORMAT( '     - SAVE_CO_PROD: Archiving P(CO) at ', a )
+
+      ! Get array indices for relevant prod/loss rates
+      DO N = 1, NFAMILIES
+         TMPNAME = GET_FAM_NAME( N )
+         IF ( TMPNAME == 'PCO'  ) N_PCO = N
+         IF ( TMPNAME == 'LCH4' ) N_LCH4 = N
+      ENDDO
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, PCO_TOT, LCH4, PCO_CH4, PCO_NMVOC )
+      DO L = 1, LD65
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! First get P(CO) and L(CH4)
+         PCO_TOT = FAM_PL(I,J,L,N_PCO)
+         LCH4    = FAM_PL(I,J,L,N_LCH4)
+
+         ! P(CO)_CH4 is LCH4. Cap so that it is never greater
+         ! than total P(CO) to prevent negative P(CO)_NMVOC
+         PCO_CH4 = MIN( LCH4, PCO_TOT )
+
+         ! P(CO) from NMVOC is the remaining P(CO)
+         PCO_NMVOC = PCO_TOT - PCO_CH4
+
+         ! Store production rates in PCO_ARR array
+         PCO_ARR(I,J,L,1) = PCO_ARR(I,J,L,1) + PCO_CH4
+         PCO_ARR(I,J,L,2) = PCO_ARR(I,J,L,2) + PCO_NMVOC
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      END SUBROUTINE SAVE_CO_PROD
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1260,7 +1349,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE INIT_DIAG_PL( DOPL, SAVEO3, N_FAM, NAME, 
-     &                         TYPE, NMEM,   MEMB,  COEF )
+     &                         TYPE, NMEM,   MEMB,  COEF, SAVEPCO )
 !
 ! !USES:
 !
@@ -1296,11 +1385,16 @@
 
       ! Names for each prod/loss family member
       CHARACTER(LEN=14), INTENT(IN) :: MEMB(MAXMEM,MAXFAM)
+
+      ! Save out P(CO) from CH4, NMVOC for tagged CO simulation?
+      LOGICAL,           INTENT(IN) :: SAVEPCO
+
 ! 
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now allocate arrays up to LD65 levels (phs, bmy, 12/4/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  15 Apr 2013 - J.A. Fisher - Added code to save P(CO) from CH4, NMVOC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1319,6 +1413,9 @@
       ! Save out P(Ox), L(Ox) for future tagged Ox simulation?
       DO_SAVE_O3 = SAVEO3
 
+      ! Save out P(CO) from CH4, NMVOC for tagged CO simulation?
+      DO_SAVE_PCO = SAVEPCO
+
       ! Number of prod/loss families
       NFAM       = N_FAM
 
@@ -1333,6 +1430,7 @@
       IF ( .not. LFAMILY ) THEN
          DO_SAVE_PL = .FALSE.
          DO_SAVE_O3 = .FALSE.
+         DO_SAVE_PCO = .FALSE.
          NFAMILIES  = 0
          NFAM       = 0
          ND65       = 0
@@ -1390,6 +1488,13 @@
          PL24H = 0d0
       ENDIF
 
+      ! Allocate PCO if we are also saving out the P(CO)
+      ! from CH4, NMVOC (jaf, 4/15/13)
+      IF ( DO_SAVE_PCO ) THEN
+         ALLOCATE( PCO_ARR( IIPAR, JJPAR, LD65, 2 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PCO_ARR' )
+      ENDIF
+
       !=================================================================
       ! Assign values from read from GEOS-CHEM input file
       !=================================================================
@@ -1425,6 +1530,7 @@
       ! CLEANUP_DIAG65 begins here!
       !=================================================================
       IF ( ALLOCATED( AD65     ) ) DEALLOCATE( AD65     )
+      IF ( ALLOCATED( PCO_ARR  ) ) DEALLOCATE( PCO_ARR  )
       IF ( ALLOCATED( FAM_COEF ) ) DEALLOCATE( FAM_COEF )
       IF ( ALLOCATED( FAM_NAME ) ) DEALLOCATE( FAM_NAME )
       IF ( ALLOCATED( FAM_NMEM ) ) DEALLOCATE( FAM_NMEM )

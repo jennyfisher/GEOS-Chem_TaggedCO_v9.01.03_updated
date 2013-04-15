@@ -278,6 +278,7 @@
          IF ( ND65 > 0 ) THEN
             AD65  = 0d0
             IF ( ALLOCATED( FAM_PL ) ) FAM_PL = 0d0      
+            IF ( ALLOCATED( PCO_ARR ) ) PCO_ARR = 0d0      
          ENDIF
 
          ! Echo output

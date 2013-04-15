@@ -5158,13 +5158,15 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  12 Apr 2013 - J.A. Fisher - Add option to save separately PCO from
+!                              CH4 and from NMVOCs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL              :: EOF, DO_SAVE_PL, DO_SAVE_O3
+      LOGICAL              :: EOF, DO_SAVE_PL, DO_SAVE_O3, DO_SAVE_PCO
       !FP_ISOP moved to CMN_SIZE (6/2009)
       !INTEGER, PARAMETER   :: MAXMEM=10
       INTEGER              :: F, M, N, NFAM
@@ -5212,15 +5214,20 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:3' )
       READ( SUBSTRS(1:N), * ) DO_SAVE_O3
 
+      ! Split P(CO) into contribs from CH4 and VOCs for tagged CO? (jaf,
+      ! 4/12/13)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:3' )
+      READ( SUBSTRS(1:N), * ) DO_SAVE_PCO
+
       ! Read number of families 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:5' )
       READ( SUBSTRS(1:N), * ) NFAM
 
       ! Loop over families
       DO F = 1, NFAM
 
          ! Get family members
-         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1,  'read_prod_loss_menu:5' )
+         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1,  'read_prod_loss_menu:6' )
 
          ! The first entry is the family name (strip colon at end)
          NAME        = SUBSTRS(1)
@@ -5262,7 +5269,7 @@
       ENDDO
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:7' )
 
       !=================================================================
       ! Error check: ND65 not available for KPP
@@ -5294,11 +5301,30 @@
          ENDIF
       ENDIF
 
+      ! Saving PCO
+      IF ( DO_SAVE_PCO ) THEN
+         IF ( NFAM  == 0 ) THEN
+            MSG = 'Wrong number of P/L families to save PCO!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ELSE
+            M = 0
+            DO F = 1, NFAM
+               IF ( FAM_NAME(F) == 'PCO'  ) M = M + 1
+               IF ( FAM_NAME(F) == 'LCH4' ) M = M + 1
+            ENDDO
+            IF ( M /= 2 ) THEN
+               MSG = 'To save PCO, must also save PCO, LCH4'
+               CALL ERROR_STOP( MSG, LOCATION )
+            ENDIF
+         ENDIF
+      ENDIF
+
       ! Offline aerosol -- turn off DO_SAVE_PL, since we use ND05,
       ! ND06, ND07, ND08, ND13 etc diagnostics instead of ND65
       IF ( ITS_AN_AEROSOL_SIM() ) THEN 
          DO_SAVE_PL    = .FALSE.
          DO_SAVE_O3    = .FALSE.
+         DO_SAVE_PCO    = .FALSE.
          ND65          = 0
          NFAM          = 0
          FAM_NAME(:)   = ''
@@ -5317,6 +5343,7 @@
          WRITE( 6, 100 ) 'Turn on prod & loss diag?   : ', DO_SAVE_PL
          WRITE( 6, 110 ) '# of levels for P/L diag    : ', ND65
          WRITE( 6, 100 ) 'Save P(Ox), L(Ox) for TagOx?: ', DO_SAVE_O3
+         WRITE( 6, 100 ) 'Split PCO from CH4, NMVOC?  : ', DO_SAVE_PCO
       
          ! Loop over families
          DO F = 1, NFAM
@@ -5343,7 +5370,8 @@
 
       ! Pass variables to "diag_pl_mod.f" 
       CALL INIT_DIAG_PL( DO_SAVE_PL, DO_SAVE_O3, NFAM,     FAM_NAME,   
-     &                   FAM_TYPE,   FAM_NMEM,   FAM_MEMB, FAM_COEF )
+     &                   FAM_TYPE,   FAM_NMEM,   FAM_MEMB, FAM_COEF,
+     &                   DO_SAVE_PCO                                 )
 
       END SUBROUTINE READ_PROD_LOSS_MENU
 !EOC

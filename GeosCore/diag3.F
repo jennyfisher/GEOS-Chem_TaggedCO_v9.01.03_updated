@@ -3423,6 +3423,29 @@
      &                  IIPAR,     JJPAR,     LD65,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD65) )
          ENDDO       
+
+         ! P(CO) from CH4 and NMVOC
+         IF ( DO_SAVE_PCO ) THEN
+
+            DO N = 1, 2
+               NN = NFAMILIES + N
+               UNIT   = 'mol/cm3/s'
+
+               WHERE( CTO3_24h(:,:,1:LD65) /= 0 )
+                  ARRAY(:,:,1:LD65) = PCO_ARR(:,:,1:LD65,N) /
+     $                                FLOAT( CTO3_24h(:,:,1:LD65) )
+               ELSEWHERE
+                  ARRAY(:,:,1:LD65) = 0.
+               ENDWHERE
+          
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     LD65,     IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD65) )
+            ENDDO
+         ENDIF
+
       ENDIF
 !
 !******************************************************************************

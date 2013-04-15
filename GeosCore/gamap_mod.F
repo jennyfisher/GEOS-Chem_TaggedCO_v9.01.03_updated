@@ -1363,7 +1363,7 @@
       USE DIAG51b_MOD,  ONLY : DO_SAVE_DIAG51b
       USE DIAG56_MOD,   ONLY : ND56
       USE DIAG63_MOD,   ONLY:  DO_SAVE_DIAG63
-      USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
+      USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM, DO_SAVE_PCO
       USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
       USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
       USE LOGICAL_MOD,  ONLY : LSOA
@@ -3713,8 +3713,14 @@
             FNAME(T,65) = TRIM( NAME(T,65) ) // ' P/L family'
             INDEX(T,65) = T + ( SPACING * 17 )
             MOLC (T,65) = 1 
-            MWT  (T,65) = GET_FAM_MWT( T )
             SCALE(T,65) = 1e0
+            
+            ! Mol. weight for CH4 not defined in GET_FAM_MWT
+            IF ( GET_FAM_NAME(T) == 'LCH4' ) THEN
+               MWT(T,65) = 16e-3
+            ELSE
+               MWT(T,65) = GET_FAM_MWT( T )
+            ENDIF
             
             ! Unit for Tag Ox is kg/s, otherwise molec/cm3/s 
             IF ( ITS_A_TAGOX_SIM() ) THEN
@@ -3723,6 +3729,34 @@
                UNIT(T,65) = 'molec/cm3/s'
             ENDIF
          ENDDO
+
+         ! For separate P(CO) from CH4 and NMVOC
+         IF ( DO_SAVE_PCO ) THEN
+
+            ! Augment number of tracers by two
+            NTRAC(65) = NTRAC(65) + 2
+
+            ! PCO_CH4
+            T = GET_NFAM() + 1
+            NAME(T,65) = 'PCO_CH4'
+            FNAME(T,65) = 'CO production from CH4 only'
+            INDEX(T,65) = T + ( SPACING * 17 )
+            MOLC (T,65) = 1 
+            MWT  (T,65) = TRACER_MW_KG( IDTCO )
+            SCALE(T,65) = 1e0
+            UNIT(T,65) = 'molec/cm3/s'
+
+            ! PCO_NMVOC
+            T = GET_NFAM() + 2
+            NAME(T,65) = 'PCO_VOC'
+            FNAME(T,65) = 'CO production from NMVOC only'
+            INDEX(T,65) = T + ( SPACING * 17 )
+            MOLC (T,65) = 1 
+            MWT  (T,65) = TRACER_MW_KG( IDTCO )
+            SCALE(T,65) = 1e0
+            UNIT(T,65) = 'molec/cm3/s'
+
+         ENDIF
       ENDIF
 
       !-------------------------------------      
