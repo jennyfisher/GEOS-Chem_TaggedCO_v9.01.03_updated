@@ -448,6 +448,14 @@
                ! Accumulate into Q
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
     
+            ELSE IF ( N == 75 .and. IS_FULLCHEM ) THEN
+
+               !--------------------------------------
+               ! HO2 CONCENTRATION [v/v]
+               ! NOTE: Only archive at chem timestep
+               !--------------------------------------
+               Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEHO2(I,J,L)
+
             ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
 
                !--------------------------------------
@@ -908,7 +916,7 @@
          ! Pick the proper divisor, depending on whether or not the
          ! species in question is archived only each chem timestep
          SELECT CASE ( ND50_TRACERS(W) )
-            CASE (91, 92, 76, 77 )
+            CASE (91, 92, 75, 76, 77 )
                DIVISOR = COUNT_CHEM3D
             CASE DEFAULT
                DIVISOR = COUNT
@@ -978,6 +986,16 @@
             !---------------------
             CATEGORY = 'TIME-SER'
             UNIT     = ''              ! Let GAMAP pick unit
+            GMNL     = ND50_NL
+            GMTRC    = 3
+
+         ELSE IF ( N == 75 ) THEN
+
+            !---------------------
+            ! HO2
+            !---------------------
+            CATEGORY = 'CHEM-L=$'
+            UNIT     = 'v/v'
             GMNL     = ND50_NL
             GMTRC    = 3
 
