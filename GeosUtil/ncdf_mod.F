@@ -727,7 +727,7 @@
          ! Make sure that month and day have valid entries
          USE_MONTH = MIN ( MAX( 1, USE_MONTH ), 12 )
          USE_DAY   = MIN ( MAX( 1, USE_DAY   ), 31 )
-         USE_HOUR  = MIN ( MAX(01, USE_HOUR  ), 23 )
+         USE_HOUR  = MIN ( MAX( 0, USE_HOUR  ), 23 )
 
          ! Get the time index
          CALL GET_TIME_IDX ( LL, timevec, USE_YEAR, USE_MONTH, 

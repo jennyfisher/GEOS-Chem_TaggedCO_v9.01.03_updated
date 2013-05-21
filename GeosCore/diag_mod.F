@@ -129,7 +129,9 @@
       REAL*4,  ALLOCATABLE :: AD28(:,:,:)
 
       ! For ND29 -- CO source diagnostic
-      REAL*4,  ALLOCATABLE :: AD29(:,:,:)
+      ! Make 3D for chemical production terms (jaf, 4/26/13)
+      !REAL*4,  ALLOCATABLE :: AD29(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD29(:,:,:,:)
 
       ! For ND30 -- land / water / ice flags
       REAL*4,  ALLOCATABLE :: AD30(:,:)

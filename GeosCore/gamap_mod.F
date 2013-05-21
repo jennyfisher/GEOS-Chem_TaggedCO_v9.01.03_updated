@@ -2761,11 +2761,11 @@
                   NAME (T,29) = 'CObf'
                   FNAME(T,29) = 'Biofuel CO'
                CASE( 4 )
-                  NAME (T,29) = 'COmeth'
-                  FNAME(T,29) = 'CO from methanol'
+                  NAME (T,29) = 'COch4'
+                  FNAME(T,29) = 'CO from methane'
                CASE( 5 )
-                  NAME (T,29) = 'COmono'
-                  FNAME(T,29) = 'CO from monoterpenes'
+                  NAME (T,29) = 'COnmvoc'
+                  FNAME(T,29) = 'CO from NMVOCs'
                CASE DEFAULT
                   ! Nothing
             END SELECT

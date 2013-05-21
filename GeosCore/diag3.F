@@ -1953,6 +1953,7 @@
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
 !  (2) ND29 now uses allocatable array AD29 instead of AIJ. (bmy, 3/16/00)
 !  (3) Added CO-sources from isoprene and monoterpenes (bnd, bmy, 1/2/01)
+! 26 Apr 2013 - J.A. Fisher - Make AD29 3D for chemical production terms
 !******************************************************************************
 !
       IF ( ND29 > 0 ) THEN
@@ -1964,13 +1965,16 @@
             IF ( N > PD29 ) CYCLE
             NN = N 
 
-            ARRAY(:,:,1) = AD29(:,:,N) / SCALESRCE
+            !ARRAY(:,:,1) = AD29(:,:,N) / SCALESRCE
+            DO L = 1,LLTROP
+               ARRAY(:,:,L) = AD29(:,:,L,N) / SCALESRCE
+            ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &                  IIPAR,     JJPAR,     LLTROP,   IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP) )
          ENDDO
       ENDIF
 !

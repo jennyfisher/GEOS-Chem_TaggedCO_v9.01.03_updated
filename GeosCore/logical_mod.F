@@ -67,6 +67,7 @@
 !                              newer Olson 2001 land map & drydep inputs
 !  08 Nov 2012 - J.A. Fisher - Added LNPI
 !  22 Nov 2012 - J.A. Fisher - Added LBF_WITH_FF
+!  23 Apr 2013 - J.A. Fisher - Added LPCO_FULLCHEM
 !  02 Jan 2013 - J. Mao & J.A. Fisher - Added LFINNBB and L1DAYBBF
 !EOP
 !------------------------------------------------------------------------------
@@ -207,6 +208,7 @@
 
       !%%%% For the CO offline simulation only %%%%
       LOGICAL :: LBF_WITH_FF
+      LOGICAL :: LPCO_FULLCHEM
 
       !%%%% For the CH4 offline simulation only %%%%
       LOGICAL :: LGAO            ! Use gas & oil emissions?

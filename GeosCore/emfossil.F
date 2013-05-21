@@ -31,6 +31,7 @@
       USE LOGICAL_MOD,        ONLY : LEMEPSHIP,        LVISTAS
       USE LOGICAL_MOD,        ONLY : LICARTT,          LNEI05
       USE LOGICAL_MOD,        ONLY : LRETRO,           LNPI
+      USE LOGICAL_MOD,        ONLY : LPCO_FULLCHEM
       USE RETRO_MOD,          ONLY : GET_RETRO_ANTHRO
       USE C2H6_MOD,           ONLY : GET_C2H6_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
@@ -933,7 +934,12 @@
          ! Modifications of the scaling using Rynda GRL 2008.
          ! (jaf, ccc, 2/25/09)
          ! Added a nested if (phs, 7/9/09)
-         IF ( ITS_A_TAGCO_SIM() ) THEN           
+         ! If it's a tagged CO simulation but uses P(CO) rates
+         ! from full chem, additional VOCs are already accounted
+         ! for and we use full chem scaling (jaf, 4/26/13)
+         IF ( ITS_A_TAGCO_SIM() .AND. LPCO_FULLCHEM ) THEN
+            IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.02d0
+         ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
             IF ( LICARTT ) THEN
                IF ( GET_USA_MASK(I,J) > 0.d0 ) THEN
                   IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.39d0
@@ -993,7 +999,7 @@
          ! ND29 = CO source diagnostic... 
          ! store as [molec/cm2/s] in AD29(:,:,1)
          IF ( ND29 > 0 .and. NN == IDTCO ) THEN
-            AD29(I,J,1) = AD29(I,J,1) +
+            AD29(I,J,1,1) = AD29(I,J,1,1) +
      &           ( EMX(1) * XNUMOL(NN) / ( DTSRCE * AREA_CM2 ) ) 
          ENDIF
 

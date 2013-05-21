@@ -226,6 +226,7 @@
       USE LOGICAL_MOD,       ONLY : L8DAYBB,  LSYNOPBB, L3HRBB
       USE LOGICAL_MOD,       ONLY : LDAYBB3,  L3HRBB3
       USE LOGICAL_MOD,       ONLY : LFINNBB,  L1DAYBBF
+      USE LOGICAL_MOD,       ONLY : LPCO_FULLCHEM
       USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,        ONLY : ITS_A_CO2_SIM
       USE TRACER_MOD,        ONLY : ITS_A_H2HD_SIM
@@ -293,11 +294,17 @@
             ! explicitly carried in the chemistry mechanisms. This used
             ! to be done in gc_biomass_mod.f but then is not used for 
             ! GFED2, FLAMBE, etc. (jaf, mak, 2/6/09)
+            ! If it is a tagged CO simulation but we are using production
+            ! and loss rates from full chem, then "extra" VOCs have
+            ! already been accounted for and we scale as for full chem
+            ! (jaf, 4/26/13)
             !
             ! Now make sure IDBCO is defined before using it.  This will
             ! avoid an out-of-bounds error. (bmy, 7/29/11)
             IF ( IDBCO > 0 ) THEN
                IF ( ITS_A_FULLCHEM_SIM() ) THEN
+                  BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
+               ELSE IF ( ITS_A_TAGCO_SIM() .AND. LPCO_FULLCHEM ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
                ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
@@ -319,6 +326,8 @@
             ! GFED3, FLAMBE, etc. (jaf, mak, 2/6/09)
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
                BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
+            ELSE IF ( ITS_A_TAGCO_SIM() .AND. LPCO_FULLCHEM ) THEN
+               BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
             ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
                BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
             ENDIF
@@ -337,6 +346,8 @@
             ! to be done in gc_biomass_mod.f but then is not used for
             ! GFED3, FLAMBE, etc. (jaf, mak, 2/6/09)
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
+            ELSE IF ( ITS_A_TAGCO_SIM() .AND. LPCO_FULLCHEM ) THEN
                BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
             ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
                BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
@@ -429,6 +440,8 @@
             IF ( IDBCO > 0 ) THEN
                IF ( ITS_A_FULLCHEM_SIM() ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
+               ELSE IF ( ITS_A_TAGCO_SIM() .AND. LPCO_FULLCHEM ) THEN
+                  BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
                ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
                ENDIF
@@ -460,10 +473,10 @@
             IF ( DO_ND29 .and. N == IDBCO ) THEN 
 
                IF ( ITS_A_H2HD_SIM() .and. (.not. USE_GFED ) ) THEN
-                  AD29(I,J,2) = AD29(I,J,2) + 
+                  AD29(I,J,1,2) = AD29(I,J,1,2) +
      &                          BIOMASS(I,J,IDBCO) * 1.11d0
                ELSE
-                  AD29(I,J,2) = AD29(I,J,2) + BIOMASS(I,J,IDBCO)
+                  AD29(I,J,1,2) = AD29(I,J,1,2) + BIOMASS(I,J,IDBCO)
                ENDIF
             ENDIF
             
@@ -697,7 +710,8 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM
+      USE LOGICAL_MOD, ONLY : LPCO_FULLCHEM
+      USE TRACER_MOD, ONLY  : ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM
 
       USE CMN_SIZE_MOD    ! Size parameters
 
@@ -712,6 +726,10 @@
          ! Full chemistry w/ SMVGEAR  -- enhance by 5%
          BBARRAY = BBARRAY * 1.05d0
          
+      ELSE IF ( ITS_A_TAGCO_SIM() .AND. LPCO_FULLCHEM ) THEN
+
+         BBARRAY = BBARRAY * 1.05d0
+
       ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
 
          ! Tagged CO -- enhance by 11%

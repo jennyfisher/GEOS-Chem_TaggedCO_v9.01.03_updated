@@ -527,10 +527,11 @@
                   TMPVAL            = ( EMMO / DTSRCE ) * 0.2d0
                   EMISRR(I,J,IDECO) = EMISRR(I,J,IDECO) + TMPVAL
 
-                  ! ND29: CO-source from monoterpenes [molec/cm2/s]
-                  IF ( ND29 > 0 ) THEN
-                     AD29(I,J,5) = AD29(I,J,5) + ( TMPVAL / AREA_CM2 )
-                  ENDIF
+                  ! Re-appropriated AD29(5) (jaf, 4/26/13)
+                  !! ND29: CO-source from monoterpenes [molec/cm2/s]
+                  !IF ( ND29 > 0 ) THEN
+                  !   AD29(I,J,5) = AD29(I,J,5) + ( TMPVAL / AREA_CM2 )
+                  !ENDIF
                ENDIF
 !
 !******************************************************************************

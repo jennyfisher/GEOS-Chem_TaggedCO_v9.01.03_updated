@@ -1012,10 +1012,10 @@
          IF ( DO_ND29 ) THEN
 
             IF ( ITS_A_H2HD_SIM() ) THEN
-               AD29(I,J,3) = AD29(I,J,3) + ( BIOFUEL(IDBFCO,I,J) * 
+               AD29(I,J,1,3) = AD29(I,J,1,3) + ( BIOFUEL(IDBFCO,I,J) * 
      &                                       BXHEIGHT_CM ) * 1.189d0
             ELSE
-               AD29(I,J,3) = AD29(I,J,3) + ( BIOFUEL(IDBFCO,I,J) * 
+               AD29(I,J,1,3) = AD29(I,J,1,3) + ( BIOFUEL(IDBFCO,I,J) * 
      &                                       BXHEIGHT_CM )
             ENDIF
 
@@ -1172,7 +1172,8 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM
+      USE LOGICAL_MOD, ONLY : LPCO_FULLCHEM
+      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM
 
       USE CMN_SIZE_MOD    ! Size parameters
       
@@ -1185,6 +1186,12 @@
       IF ( ITS_A_FULLCHEM_SIM() ) THEN 
 
          ! Full chemistry w/ SMVGEAR  -- enhance by 8.6%
+         BFARRAY = BFARRAY * 1.086d0
+
+      ELSE IF ( ITS_A_TAGCO_SIM() .AND. ( LPCO_FULLCHEM) ) THEN 
+
+         ! Using full chem P(CO) in tagged CO already accounts for
+         !same species as full chem
          BFARRAY = BFARRAY * 1.086d0
 
       ELSE IF ( ITS_A_TAGCO_SIM() ) THEN 

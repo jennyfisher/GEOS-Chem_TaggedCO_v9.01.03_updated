@@ -2387,7 +2387,7 @@
 !
 ! !USES:
 !
-      USE LOGICAL_MOD, ONLY : LBF_WITH_FF
+      USE LOGICAL_MOD, ONLY : LBF_WITH_FF,    LPCO_FULLCHEM
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM
 
@@ -2425,6 +2425,10 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO_sim_menu:1' )
       READ( SUBSTRS(1:N), * ) LBF_WITH_FF
 
+      ! Use CO production rates saved from previous full chem run?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO_sim_menu:2' )
+      READ( SUBSTRS(1:N), * ) LPCO_FULLCHEM
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -2434,6 +2438,7 @@
      &         '(overwrites any other settings related to CO)'
           WRITE(6,'(  a)') '-------------------------------------'
           WRITE(6,100) '   Add biofuels to fossil fuels?:',LBF_WITH_FF
+          WRITE(6,100) '   Use P(CO) from full chem?:',LPCO_FULLCHEM
         ENDIF
       ENDIF      
 

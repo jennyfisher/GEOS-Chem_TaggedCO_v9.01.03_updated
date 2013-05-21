@@ -677,9 +677,11 @@
       ! ND29: CO-SRCE diagnostic [molec/cm2/s]
       !       (anthro, biomass, biofuel, from monot., from methanol) 
       !        --> uses AD29 array (allocatable)
+      ! Make 3D for chemical production terms (jaf, 4/26/13)
       !=================================================================
       IF ( ND29 > 0 ) THEN
-         ALLOCATE( AD29( IIPAR, JJPAR, PD29 ), STAT=AS )
+         !ALLOCATE( AD29( IIPAR, JJPAR, PD29 ), STAT=AS )
+         ALLOCATE( AD29( IIPAR, JJPAR, LLPAR, PD29 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD29' )
       ENDIF
 

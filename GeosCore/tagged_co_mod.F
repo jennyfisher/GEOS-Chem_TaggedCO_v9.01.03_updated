@@ -145,6 +145,7 @@
       PRIVATE SUMISOPCO, SUMMONOCO,   SUMACETCO
       PRIVATE CO_PRODS,  CO_LOSSS,    FMOL_CO,   XNUMOL_CO
       PRIVATE FMOL_ISOP, XNUMOL_ISOP, FMOL_MONO, XNUMOL_MONO      
+      PRIVATE PCO_CH4,   PCO_NMVOC
       
       ! PRIVATE module routines
       PRIVATE DEFINE_FF_CO_REGIONS, DEFINE_BB_CO_REGIONS 
@@ -161,6 +162,8 @@
       REAL*8,  ALLOCATABLE :: EMACET(:,:)
       REAL*8,  ALLOCATABLE :: CO_PRODS(:,:,:)
       REAL*8,  ALLOCATABLE :: CO_LOSSS(:,:,:)
+      REAL*8,  ALLOCATABLE :: PCO_CH4(:,:,:)
+      REAL*8,  ALLOCATABLE :: PCO_NMVOC(:,:,:)
 
       ! FMOL_CO     - kg CO / mole CO
       ! XNUMOL_CO   - molecules CO / kg CO
@@ -932,6 +935,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  22 Oct 2012 - R. Yantosca - Now pass am_I_Root=.TRUE. to GET_GLOBAL_CH4
+!  26 Apr 2013 - J.A. Fisher - Now use stored P(CO) from full chem
+!  26 Apr 2013 - J.A. Fisher - Now save CO from VOCs in ND29(:,:,4)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -944,14 +949,14 @@
       USE GLOBAL_NOX_MOD, ONLY : GET_GLOBAL_NOX,  BNOX
       ! jaf, 3/10/09
       USE GRID_MOD,       ONLY : GET_YMID,        GET_AREA_CM2
-      USE LOGICAL_MOD,    ONLY : LSPLIT
+      USE LOGICAL_MOD,    ONLY : LSPLIT,          LPCO_FULLCHEM
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
       ! jaf, 3/10/09
       USE TIME_MOD,       ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,       ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
       USE TRACER_MOD,     ONLY : N_TRACERS,       STT
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! ND65
@@ -964,6 +969,7 @@
       REAL*8                 :: STTCO,     KRATE,      CH4
       REAL*8                 :: CO_CH4,    CO_ISOP,    CO_MONO
       REAL*8                 :: CO_CH3OH,  CO_OH,      CO_ACET
+      REAL*8                 :: CO_NMVOC
       REAL*8                 :: CH4RATE,   DENS,       ALPHA_ACET
       REAL*8                 :: CORATE,    YMID
 
@@ -1019,7 +1025,10 @@
          IF ( ALPHA_ISOP_FROM_NOX ) CALL GET_GLOBAL_NOX( MONTH )
             
          ! Read in the loss/production of CO in the stratosphere.
-         CALL READ_PCO_LCO_STRAT( MONTH )
+         IF ( LPCO_FULLCHEM ) CALL READ_PCO_LCO_STRAT( MONTH )
+
+         ! Read in the production of CO in the troposphere
+         CALL READ_PCO_TROP( MONTH, GET_YEAR() )
             
       ENDIF
 
@@ -1050,6 +1059,7 @@
 ! Add private declarations for new CO+OH rate (jaf, jmao, 3/4/09)
 !$OMP+PRIVATE( KHI1, KLO1, XYRAT1, BLOG1, FEXP1, KHI2, KLO2       )
 !$OMP+PRIVATE( XYRAT2, BLOG2, FEXP2, KCO1, KCO2, AREA_CM2         )
+!$OMP+PRIVATE( CO_NMVOC )
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -1101,25 +1111,34 @@
             ! (1a-2) Production of CO from CH4 in the troposphere 
             !===========================================================
 
-            ! CH4 concentration [ppbv] for the given latitude band 
-            ! (bmy, 1/2/01)
-            CH4 = A3090S
-            IF ( YMID >= -30.0 .and. YMID < 0.0  ) CH4 = A0030S
-            IF ( YMID >=   0.0 .and. YMID < 30.0 ) CH4 = A0030N
-            IF ( YMID >=  30.0                   ) CH4 = A3090N
-            
-            ! Convert CH4 from [ppbv] to [molec CH4/cm3]
-            CH4 = CH4 * 1d-9 * DENS
+            ! Use saved rate (jaf, 4/26/13)
+            IF ( LPCO_FULLCHEM ) THEN
 
-            ! Yield of CO from CH4: estimated to be 95-100% (acf)
-            ALPHA_CH4 = 1d0
+               CO_CH4 = PCO_CH4(I,J,L) * DTCHEM
 
-            ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
-            KRATE = 2.45D-12 * EXP( -1775.d0 / T(I,J,L) ) 
+            ELSE
+
+               ! CH4 concentration [ppbv] for the given latitude band
+               ! (bmy, 1/2/01)
+               CH4 = A3090S
+               IF ( YMID >= -30.0 .and. YMID < 0.0  ) CH4 = A0030S
+               IF ( YMID >=   0.0 .and. YMID < 30.0 ) CH4 = A0030N
+               IF ( YMID >=  30.0                   ) CH4 = A3090N
+
+               ! Convert CH4 from [ppbv] to [molec CH4/cm3]
+               CH4 = CH4 * 1d-9 * DENS
+
+               ! Yield of CO from CH4: estimated to be 95-100% (acf)
+               ALPHA_CH4 = 1d0
+
+               ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
+               KRATE = 2.45D-12 * EXP( -1775.d0 / T(I,J,L) )
  
-            ! Production of CO from CH4 = alpha * k * [CH4] * [OH] * dt 
-            ! Units are [molec CO/cm3]
-            CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH(I,J,L) * DTCHEM 
+               ! Production of CO from CH4 = alpha * k * [CH4] * [OH] * dt
+               ! Units are [molec CO/cm3]
+               CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH(I,J,L) * DTCHEM
+
+            ENDIF
 
          ENDIF
 
@@ -1127,6 +1146,40 @@
          CALL CHECK_VALUE( CO_CH4,  (/ I, J, L, 0 /),         
      &                    'CO_CH4', 'STOP at tagged_co_mod:1' )
 
+
+         ! Use saved rate (jaf, 4/26/13)
+         IF ( LPCO_FULLCHEM ) THEN
+
+         !==============================================================
+         ! (1b) Production of CO from NMVOCs (all but CH4)
+         !==============================================================
+
+         ! Intialize
+         CO_NMVOC = 0d0
+
+         IF ( ITS_IN_THE_TROP(I,J,L) ) THEN
+
+            ! Use saved rates in the troposphere
+            CO_NMVOC = PCO_NMVOC(I,J,L) * DTCHEM
+
+         ELSE
+
+            ! No production in the stratosphere
+            CO_NMVOC = 0d0
+
+         ENDIF
+
+         ! Check CO_NMVOC for NaN or Infinity
+         CALL CHECK_VALUE( CO_NMVOC,  (/ I, J, L, 0 /),
+     &                    'CO_NMVOC', 'STOP at tagged_co_mod:1b' )
+
+         ! Set individual VOCs to zero to avoid diagnostic problems
+         CO_ISOP  = 0d0
+         CO_CH3OH = 0d0
+         CO_MONO  = 0d0
+         CO_ACET  = 0d0
+
+         ELSE ! standard treatment
          !==============================================================
          ! (1b) Production of CO from ISOPRENE and METHANOL (CH3OH)
          !==============================================================
@@ -1298,6 +1351,7 @@
 
          ENDIF
 
+         ENDIF ! saved rates or standard treatment
          !==============================================================
          ! (1e) Add production of CO into the following tagged tracers:
          !
@@ -1321,10 +1375,16 @@
 !            STT(I,J,L,16) = STT(I,J,L,16) + CO_CH3OH / STTCO
 !            STT(I,J,L,17) = STT(I,J,L,17) + CO_ACET  / STTCO
             STT(I,J,L,20) = STT(I,J,L,20) + CO_CH4   / STTCO
-            STT(I,J,L,22) = STT(I,J,L,22) + CO_ISOP  / STTCO 
-            STT(I,J,L,23) = STT(I,J,L,23) + CO_MONO  / STTCO
-            STT(I,J,L,24) = STT(I,J,L,24) + CO_CH3OH / STTCO
-            STT(I,J,L,25) = STT(I,J,L,25) + CO_ACET  / STTCO
+
+            ! For now save CO from NMVOCs in isoprene slot
+            IF ( LPCO_FULLCHEM ) THEN
+               STT(I,J,L,22) = STT(I,J,L,22) + CO_NMVOC / STTCO
+            ELSE
+               STT(I,J,L,22) = STT(I,J,L,22) + CO_ISOP  / STTCO
+               STT(I,J,L,23) = STT(I,J,L,23) + CO_MONO  / STTCO
+               STT(I,J,L,24) = STT(I,J,L,24) + CO_CH3OH / STTCO
+               STT(I,J,L,25) = STT(I,J,L,25) + CO_ACET  / STTCO
+            ENDIF
 !---------------------------------------------------------
          ENDIF
 
@@ -1470,11 +1530,28 @@
 
          ! GCO is the total CO before chemistry was applied [molec CO/cm3]
          ! Add to GCO the sources and sinks listed above
-         GCO = GCO + CO_CH4   + CO_MONO + CO_ACET + 
+
+         ! Use saved rates with lumped NMVOCs? (jaf, 4/26/13)
+         IF ( LPCO_FULLCHEM ) THEN
+            GCO = GCO + CO_CH4 + CO_NMVOC - CO_OH
+         ELSE
+            GCO = GCO + CO_CH4   + CO_MONO + CO_ACET +
      &               CO_CH3OH + CO_ISOP - CO_OH
+            CO_NMVOC = CO_MONO + CO_ACET + CO_CH3OH + CO_ISOP
+         ENDIF
 
          ! Convert net CO from [molec CO/cm3] to [kg] and store in STT
          STT(I,J,L,1) = GCO / STTCO
+
+         !==============================================================
+         ! Archive ND29 diagnostics -- CO sources from CH4 and NMVOCs
+         !==============================================================
+         IF ( ND29 > 0 ) THEN
+            AD29(I,J,L,4) = AD29(I,J,L,4) + CO_CH4 * BOXVL(I,J,L) /
+     &                                ( AREA_CM2 * DTCHEM )
+            AD29(I,J,L,5) = AD29(I,J,L,5) + CO_NMVOC * BOXVL(I,J,L) /
+     &                                ( AREA_CM2 * DTCHEM )
+         ENDIF
 
          !==============================================================
          ! Archive ND65 diagnostics -- Production & Loss of CO
@@ -1739,7 +1816,125 @@
       ! Return to calling program
       END FUNCTION GET_PCO_LCO_STRAT
 
-!-----------------------------------------------------------------------------
+!EOC
+!------------------------------------------------------------------------------
+!         J. Fisher - U. Wollongong                                           !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_pco_trop
+!
+! !DESCRIPTION: Subroutine READ\_PCO\_TROP reads the CO production rates
+!  archived from a full chemistry simulation
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_PCO_TROP( THISMONTH, THISYEAR )
+!
+! !USES:
+!
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+      USE ERROR_MOD,      ONLY : IT_IS_NAN
+      USE NCDF_MOD,       ONLY : NC_READ
+      USE TRANSFER_MOD,   ONLY : TRANSFER_3D
+
+      USE CMN_SIZE_MOD          ! Size parameters
+
+!
+! !INPUT PARAMETERS:
+!
+      ! Year and month
+      INTEGER,             INTENT(IN) :: THISYEAR
+      INTEGER,             INTENT(IN) :: THISMONTH
+!
+! !REVISION HISTORY:
+!  26 Apr 2013 - J. Fisher - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=255)    :: FILENAME
+      CHARACTER(LEN=20)     :: PARNAME
+      REAL*4, POINTER       :: NCARRAY(:,:,:,:) => NULL()
+      REAL*4                :: ARRAY(IIPAR,JJPAR,LGLOB)
+      INTEGER               :: I, J, L, LDIM
+
+      !=================================================================
+      ! READ_PCO_TROP begins here!
+      !=================================================================
+
+      ! Initialize variables
+      NCARRAY   = 0E0
+      ARRAY     = 0E0
+      PCO_CH4   = 0D0
+      PCO_NMVOC = 0D0
+
+      ! Reading variables
+      !!!! Kludge for testing
+!      FILENAME = TRIM( DATA_DIR ) // 'co_prod_201304/PCO.'//
+!     &           GET_NAME_EXT()   // '.' // GET_RES_EXT() // '.nc'
+      FILENAME = 'PCO.geos5.4x5.nc'
+      !!!!
+
+      ! Read CO production from CH4
+      PARNAME  = 'PCO_CH4'
+      CALL NC_READ ( NC_PATH = TRIM(FILENAME) ,
+     &               PARA    = TRIM(PARNAME)  ,
+     &               ARRAY   = NCARRAY        ,
+     &               YEAR    = THISYEAR       ,
+     &               MONTH   = THISMONTH      ,
+     &               VERBOSE = .FALSE.         )
+
+      ! Resize and cast to REAL*8
+      LDIM = SIZE(NCARRAY,3)
+      !!!! Will probably need this when we use full strat fields
+      !ARRAY(:,:,1:LDIM) = NCARRAY(:,:,:,1)
+      !CALL TRANSFER_3D( ARRAY, PCO_CH4 )
+      PCO_CH4(:,:,1:LDIM) = NCARRAY(:,:,:,1)
+      !!!!
+
+      ! Deallocate ncdf-array
+      IF ( ASSOCIATED ( NCARRAY ) ) DEALLOCATE ( NCARRAY )
+
+      ! Read CO production from NMVOC
+      ARRAY = 0E0
+      PARNAME  = 'PCO_VOC'
+      CALL NC_READ ( NC_PATH = TRIM(FILENAME) ,
+     &               PARA    = TRIM(PARNAME)  ,
+     &               ARRAY   = NCARRAY        ,
+     &               YEAR    = THISYEAR       ,
+     &               MONTH   = THISMONTH      ,
+     &               VERBOSE = .FALSE.         )
+
+      ! Resize and cast to REAL*8
+      LDIM = SIZE(NCARRAY,3)
+      !!!! Will probably need this when we use full strat fields
+      !ARRAY(:,:,1:LDIM) = NCARRAY(:,:,:,1)
+      !CALL TRANSFER_3D( ARRAY, PCO_NMVOC )
+      PCO_NMVOC(:,:,1:LDIM) = NCARRAY(:,:,:,1)
+      !!!!
+
+      ! Deallocate ncdf-array
+      IF ( ASSOCIATED ( NCARRAY ) ) DEALLOCATE ( NCARRAY )
+
+      ! Check for NaNs in the stratosphere and set to zero
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+      DO L=1,LLPAR
+         IF ( IT_IS_NAN( PCO_CH4(I,J,L) ) )   PCO_CH4(I,J,L)   = 0d0
+         IF ( IT_IS_NAN( PCO_NMVOC(I,J,L) ) ) PCO_NMVOC(I,J,L) = 0d0
+      ENDDO
+      ENDDO
+      ENDDO
+
+      ! Return to calling program
+      END SUBROUTINE READ_PCO_TROP
+!EOC
+!------------------------------------------------------------------------------
 
       SUBROUTINE READ_ACETONE( THISMONTH )
 !
@@ -1918,6 +2113,16 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMACETCO' )         
       SUMACETCO = 0d0 
 
+      ! Allocate PCO_CH4 - Trop. CO prod. from CH4
+      ALLOCATE( PCO_CH4( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PCO_CH4' )
+      PCO_CH4 = 0d0
+
+      ! Allocate PCO_NMVOC - Trop. CO prod. from NMVOC
+      ALLOCATE( PCO_NMVOC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PCO_NMVOC' )
+      PCO_NMVOC = 0d0
+
       ! Return to calling program
       END SUBROUTINE INIT_TAGGED_CO
 
@@ -1945,6 +2150,8 @@
       IF ( ALLOCATED( EMACET     ) ) DEALLOCATE( EMACET     )
       IF ( ALLOCATED( CO_PRODS   ) ) DEALLOCATE( CO_PRODS   )
       IF ( ALLOCATED( CO_LOSSS   ) ) DEALLOCATE( CO_LOSSS   )
+      IF ( ALLOCATED( PCO_CH4    ) ) DEALLOCATE( PCO_CH4    )
+      IF ( ALLOCATED( PCO_NMVOC  ) ) DEALLOCATE( PCO_NMVOC  )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_TAGGED_CO
