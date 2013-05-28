@@ -28,6 +28,7 @@
 !
       PUBLIC :: CLEANUP_GLOBAL_OH
       PUBLIC :: GET_GLOBAL_OH
+      PUBLIC :: GET_GLOBAL_OH_NCDF
       PUBLIC :: INIT_GLOBAL_OH
 !
 ! !REVISION HISTORY:
@@ -45,6 +46,8 @@
 !  (9 ) Bug fix: OH should be (IIPAR,JJPAR,LLPAR) (bmy, 5/4/04)
 !  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  22 May 2013 - J.A. Fisher - Added ability to read yearly varying OH from
+!                netcdf files
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -145,6 +148,102 @@
 
       END SUBROUTINE GET_GLOBAL_OH
 !EOC
+!------------------------------------------------------------------------------
+!         J. Fisher - U. Wollongong                                           !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_global_oh_ncdf
+!
+! !DESCRIPTION: Subroutine GET\_GLOBAL\_OH\_NCDF reads the OH concentrations
+!  archived from a full chemistry simulation
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_GLOBAL_OH_NCDF( THISMONTH, THISYEAR )
+!
+! !USES:
+!
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+      USE ERROR_MOD,      ONLY : IT_IS_NAN
+      USE NCDF_MOD,       ONLY : NC_READ
+      USE TRANSFER_MOD,   ONLY : TRANSFER_3D
+
+      USE CMN_SIZE_MOD          ! Size parameters
+
+!
+! !INPUT PARAMETERS:
+!
+      ! Year and month
+      INTEGER,             INTENT(IN) :: THISYEAR
+      INTEGER,             INTENT(IN) :: THISMONTH
+!
+! !REVISION HISTORY:
+!  22 May 2013 - J. Fisher - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=255)    :: FILENAME
+      CHARACTER(LEN=20)     :: PARNAME
+      REAL*4, POINTER       :: NCARRAY(:,:,:,:) => NULL()
+      REAL*4                :: ARRAY(IIPAR,JJPAR,LGLOB)
+      INTEGER               :: I, J, L, LDIM
+
+      ! First time flag
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+
+      !=================================================================
+      ! GET_GLOBAL_OH_NCDF begins here!
+      !=================================================================
+
+      ! Allocate OH array, if this is the first call
+      IF ( FIRST ) THEN
+         CALL INIT_GLOBAL_OH
+         FIRST = .FALSE.
+      ENDIF
+
+      ! Initialize reading variables
+      NCARRAY   = 0E0
+      ARRAY     = 0E0
+      OH        = 0D0
+
+      ! Reading variables
+      !!!! Kludge for testing
+!      FILENAME = TRIM( DATA_DIR ) // 'tagged_co_201304/OH_3Dglobal.'//
+!     &           GET_NAME_EXT()   // '.' // GET_RES_EXT() // '.nc'
+      FILENAME = 'OH_3Dglobal.geos5.4x5.nc'
+      !!!!
+
+      ! Read OH
+      PARNAME  = 'OH'
+      CALL NC_READ ( NC_PATH = TRIM(FILENAME) ,
+     &               PARA    = TRIM(PARNAME)  ,
+     &               ARRAY   = NCARRAY        ,
+     &               YEAR    = THISYEAR       ,
+     &               MONTH   = THISMONTH      ,
+     &               VERBOSE = .FALSE.         )
+
+      ! Resize and cast to REAL*8
+      LDIM = SIZE(NCARRAY,3)
+      !!!! Will probably need this when we use full strat fields
+      !ARRAY(:,:,1:LDIM) = NCARRAY(:,:,:,1)
+      !CALL TRANSFER_3D( ARRAY, OH )
+      OH(:,:,1:LDIM) = NCARRAY(:,:,:,1)
+      !!!!
+
+      ! Deallocate ncdf-array
+      IF ( ASSOCIATED ( NCARRAY ) ) DEALLOCATE ( NCARRAY )
+
+      ! Return to calling program
+      END SUBROUTINE GET_GLOBAL_OH_NCDF
+!EOC
+!------------------------------------------------------------------------------
+
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------

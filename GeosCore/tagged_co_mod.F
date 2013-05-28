@@ -946,10 +946,12 @@
       USE DIAG_PL_MOD,    ONLY : AD65
       USE ERROR_MOD,      ONLY : CHECK_VALUE
       USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH,   OH
+      USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH_NCDF
       USE GLOBAL_NOX_MOD, ONLY : GET_GLOBAL_NOX,  BNOX
       ! jaf, 3/10/09
       USE GRID_MOD,       ONLY : GET_YMID,        GET_AREA_CM2
       USE LOGICAL_MOD,    ONLY : LSPLIT,          LPCO_FULLCHEM
+      USE LOGICAL_MOD,    ONLY : LOH_FULLCHEM
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
       ! jaf, 3/10/09
       USE TIME_MOD,       ONLY : GET_TS_CHEM,     GET_TS_EMIS
@@ -1018,17 +1020,21 @@
          MONTH = GET_MONTH()
 
          ! Global OH 
-         CALL GET_GLOBAL_OH( MONTH )
+         IF ( LOH_FULLCHEM ) THEN
+            CALL GET_GLOBAL_OH_NCDF( MONTH, GET_YEAR() )
+         ELSE
+            CALL GET_GLOBAL_OH( MONTH )
+         ENDIF
 
          ! Global NOx -- need this to determine 
          ! ALPHA_ISOP which is a function of NOx
          IF ( ALPHA_ISOP_FROM_NOX ) CALL GET_GLOBAL_NOX( MONTH )
             
          ! Read in the loss/production of CO in the stratosphere.
-         IF ( LPCO_FULLCHEM ) CALL READ_PCO_LCO_STRAT( MONTH )
+         CALL READ_PCO_LCO_STRAT( MONTH )
 
          ! Read in the production of CO in the troposphere
-         CALL READ_PCO_TROP( MONTH, GET_YEAR() )
+         IF ( LPCO_FULLCHEM ) CALL READ_PCO_TROP( MONTH, GET_YEAR() )
             
       ENDIF
 
@@ -1875,7 +1881,7 @@
 
       ! Reading variables
       !!!! Kludge for testing
-!      FILENAME = TRIM( DATA_DIR ) // 'co_prod_201304/PCO.'//
+!      FILENAME = TRIM( DATA_DIR ) // 'tagged_co_201304/PCO.'//
 !     &           GET_NAME_EXT()   // '.' // GET_RES_EXT() // '.nc'
       FILENAME = 'PCO.geos5.4x5.nc'
       !!!!
