@@ -1883,8 +1883,11 @@
       !!!! Kludge for testing
 !      FILENAME = TRIM( DATA_DIR ) // 'tagged_co_201304/PCO.'//
 !     &           GET_NAME_EXT()   // '.' // GET_RES_EXT() // '.nc'
-      FILENAME = 'PCO.geos5.4x5.nc'
+      FILENAME = 'PCO.geos5_72L.'// GET_RES_EXT() //'.nc'
       !!!!
+
+      ! Echo to stdout
+      WRITE( 6, '(a)' ) 'READING ', TRIM( FILENAME )
 
       ! Read CO production from CH4
       PARNAME  = 'PCO_CH4'
@@ -1897,11 +1900,8 @@
 
       ! Resize and cast to REAL*8
       LDIM = SIZE(NCARRAY,3)
-      !!!! Will probably need this when we use full strat fields
-      !ARRAY(:,:,1:LDIM) = NCARRAY(:,:,:,1)
-      !CALL TRANSFER_3D( ARRAY, PCO_CH4 )
-      PCO_CH4(:,:,1:LDIM) = NCARRAY(:,:,:,1)
-      !!!!
+      ARRAY(:,:,1:LDIM) = NCARRAY(:,:,:,1)
+      CALL TRANSFER_3D( ARRAY, PCO_CH4 )
 
       ! Deallocate ncdf-array
       IF ( ASSOCIATED ( NCARRAY ) ) DEALLOCATE ( NCARRAY )
@@ -1918,11 +1918,8 @@
 
       ! Resize and cast to REAL*8
       LDIM = SIZE(NCARRAY,3)
-      !!!! Will probably need this when we use full strat fields
-      !ARRAY(:,:,1:LDIM) = NCARRAY(:,:,:,1)
-      !CALL TRANSFER_3D( ARRAY, PCO_NMVOC )
-      PCO_NMVOC(:,:,1:LDIM) = NCARRAY(:,:,:,1)
-      !!!!
+      ARRAY(:,:,1:LDIM) = NCARRAY(:,:,:,1)
+      CALL TRANSFER_3D( ARRAY, PCO_NMVOC )
 
       ! Deallocate ncdf-array
       IF ( ASSOCIATED ( NCARRAY ) ) DEALLOCATE ( NCARRAY )

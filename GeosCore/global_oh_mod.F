@@ -216,8 +216,11 @@
       !!!! Kludge for testing
 !      FILENAME = TRIM( DATA_DIR ) // 'tagged_co_201304/OH_3Dglobal.'//
 !     &           GET_NAME_EXT()   // '.' // GET_RES_EXT() // '.nc'
-      FILENAME = 'OH_3Dglobal.geos5.4x5.nc'
+      FILENAME = 'OH_3Dglobal.geos5_72L.'// GET_RES_EXT() //'.nc'
       !!!!
+
+      ! Echo to stdout
+      WRITE( 6, '(a)' ) 'READING ', TRIM( FILENAME )
 
       ! Read OH
       PARNAME  = 'OH'
@@ -230,11 +233,8 @@
 
       ! Resize and cast to REAL*8
       LDIM = SIZE(NCARRAY,3)
-      !!!! Will probably need this when we use full strat fields
-      !ARRAY(:,:,1:LDIM) = NCARRAY(:,:,:,1)
-      !CALL TRANSFER_3D( ARRAY, OH )
-      OH(:,:,1:LDIM) = NCARRAY(:,:,:,1)
-      !!!!
+      ARRAY(:,:,1:LDIM) = NCARRAY(:,:,:,1)
+      CALL TRANSFER_3D( ARRAY, OH )
 
       ! Deallocate ncdf-array
       IF ( ASSOCIATED ( NCARRAY ) ) DEALLOCATE ( NCARRAY )

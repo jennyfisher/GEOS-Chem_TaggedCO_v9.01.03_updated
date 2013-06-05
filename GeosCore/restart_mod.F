@@ -601,6 +601,7 @@
       IF ( NL /= LLPAR ) THEN
          WRITE( 6, '(a)' ) 'ERROR reading in restart file!'
          WRITE( 6, '(a)' ) 'Wrong number of levels encountered!'
+         WRITE( 6, *     ) 'Expected ',LLPAR,'; Found ',NL
          WRITE( 6, '(a)' ) 'STOP in CHECK_DIMENSIONS (restart_mod.f)'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          CALL GEOS_CHEM_STOP
@@ -884,7 +885,9 @@
       !=================================================================
 
       ! Hardwire output file for now
-      OUTPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
+      !OUTPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
+      ! Use regular restart file name with "cspec" appended (jaf, 5/28/13)
+      OUTPUT_CHECKPT_FILE = TRIM( OUTPUT_RESTART_FILE ) // '.cspec'
 
       ! Clear some arrays 
       ! use minimum value instead of zero hotp 2/25/09
@@ -1077,7 +1080,9 @@
       !=================================================================
 
       ! Hardwire output file for now
-      INPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
+      !INPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
+      ! Use regular restart file name with "cspec" appended (jaf, 5/28/13)
+      INPUT_CHECKPT_FILE = TRIM( INPUT_RESTART_FILE ) // '.cspec'
 
       ! Initialize some variables
       !TMP(:,:,:) = 0e0
