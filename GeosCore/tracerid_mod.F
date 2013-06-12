@@ -319,6 +319,10 @@
       ! add dicarbonyl emissions (ccc, 01/27/10)
       INTEGER            :: IDBGLYX, IDBMGLY, IDBC2H4, IDBC2H2
       INTEGER            :: IDBGLYC, IDBHAC      
+
+      ! Specialised tagged CO tracers (jaf, 6/5/13)
+      INTEGER            :: IDTCOBIOF, IDTCOCH4,  IDTCONMVOC
+      INTEGER            :: IDTCOISOP, IDTCOMONO, IDTCOMEOH, IDTCOACET
       
 
       CONTAINS
@@ -485,7 +489,7 @@
                   NEMANTHRO = 1
                   IDECO     = 1
                   IDTISOP   = 1
-                  EXIT
+                  !!!EXIT
                ENDIF
 
             !-----------------------------------
@@ -1123,6 +1127,30 @@
             CASE ( 'HGP_NT' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+
+            !--------------------------------
+            ! Specialized tagged CO tracers (jaf, 6/5/13)
+            !--------------------------------
+            CASE ( 'COBIOF' )
+               IDTCObiof         = N
+
+            CASE ( 'COCH4' )
+               IDTCOch4          = N
+
+            CASE ( 'CONMVOC' )
+               IDTCOnmvoc        = N
+
+            CASE ( 'COISOP' )
+               IDTCOisop         = N
+
+            CASE ( 'COMONO' )
+               IDTCOmono         = N
+
+            CASE ( 'COMEOH' )
+               IDTCOmeoh         = N
+
+            CASE ( 'COACET' )
+               IDTCOacet         = N
 
             CASE DEFAULT
                ! Nothing
@@ -2414,6 +2442,15 @@
          ID_HgP = 0
 
       ENDIF
+
+      ! For tagged CO (jaf, 6/6/13)
+      IDTCOch4   = 0
+      IDTCOnmvoc = 0
+      IDTCObiof  = 0
+      IDTCOmono  = 0
+      IDTCOmeoh  = 0
+      IDTCOisop  = 0
+      IDTCOacet  = 0
 
       ! Return to calling program
       END SUBROUTINE INIT_TRACERID

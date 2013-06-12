@@ -550,7 +550,7 @@
       USE TIME_MOD,     ONLY : GET_MONTH,     GET_TAU 
       USE TIME_MOD,     ONLY : GET_YEAR,      GET_TS_EMIS  
       USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDBFCO,        IDECO,          IDBCO
+      USE TRACERID_MOD, ONLY : IDBFCO, IDECO, IDBCO, IDTCObiof
       
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_O3_MOD       ! FSCALYR, SCNR89, TODH, EMISTCO, EMISRR
@@ -774,7 +774,10 @@
 !---------------------------------------------------------
 ! Reset tagged CO regions (jaf, 17 Oct 12)
 !                  STT(I,J,1,13) = STT(I,J,1,13) + E_CO
-                  STT(I,J,1,21) = STT(I,J,1,21) + E_CO
+!                  STT(I,J,1,21) = STT(I,J,1,21) + E_CO
+! Now use tracer numbers from tracerid_mod.F (jaf, 5 Jun 13)
+                  IF ( IDTCObiof > 0 ) STT(I,J,1,IDTCObiof) = 
+     &               STT(I,J,1,IDTCObiof) + E_CO
 !---------------------------------------------------------
                ENDIF
             ENDIF
@@ -958,6 +961,9 @@
       USE TIME_MOD,       ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
       USE TRACER_MOD,     ONLY : N_TRACERS,       STT
+      USE TRACERID_MOD,   ONLY : IDTCOch4,        IDTCOnmvoc
+      USE TRACERID_MOD,   ONLY : IDTCOisop,       IDTCOmono
+      USE TRACERID_MOD,   ONLY : IDTCOmeoh,       IDTCOacet
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -1380,16 +1386,28 @@
 !            STT(I,J,L,15) = STT(I,J,L,15) + CO_MONO  / STTCO
 !            STT(I,J,L,16) = STT(I,J,L,16) + CO_CH3OH / STTCO
 !            STT(I,J,L,17) = STT(I,J,L,17) + CO_ACET  / STTCO
-            STT(I,J,L,20) = STT(I,J,L,20) + CO_CH4   / STTCO
+! Now use tracer IDs (jaf, 5 Jun 13)
+!            STT(I,J,L,20) = STT(I,J,L,20) + CO_CH4   / STTCO
+!               STT(I,J,L,22) = STT(I,J,L,22) + CO_ISOP  / STTCO
+!               STT(I,J,L,23) = STT(I,J,L,23) + CO_MONO  / STTCO
+!               STT(I,J,L,24) = STT(I,J,L,24) + CO_CH3OH / STTCO
+!               STT(I,J,L,25) = STT(I,J,L,25) + CO_ACET  / STTCO
 
-            ! For now save CO from NMVOCs in isoprene slot
+            IF ( IDTCOch4 > 0 ) STT(I,J,L,IDTCOch4) =
+     &          STT(I,J,L,IDTCOch4) + CO_CH4   / STTCO
+
             IF ( LPCO_FULLCHEM ) THEN
-               STT(I,J,L,22) = STT(I,J,L,22) + CO_NMVOC / STTCO
+               IF ( IDTCOnmvoc > 0 ) STT(I,J,L,IDTCOnmvoc) =
+     &            STT(I,J,L,IDTCOnmvoc) + CO_NMVOC / STTCO
             ELSE
-               STT(I,J,L,22) = STT(I,J,L,22) + CO_ISOP  / STTCO
-               STT(I,J,L,23) = STT(I,J,L,23) + CO_MONO  / STTCO
-               STT(I,J,L,24) = STT(I,J,L,24) + CO_CH3OH / STTCO
-               STT(I,J,L,25) = STT(I,J,L,25) + CO_ACET  / STTCO
+               IF ( IDTCOisop > 0 ) STT(I,J,L,IDTCOisop) =
+     &            STT(I,J,L,IDTCOisop) + CO_ISOP / STTCO
+               IF ( IDTCOmono > 0 ) STT(I,J,L,IDTCOmono) =
+     &            STT(I,J,L,IDTCOmono) + CO_MONO / STTCO
+               IF ( IDTCOmeoh > 0 ) STT(I,J,L,IDTCOmeoh) =
+     &            STT(I,J,L,IDTCOmeoh) + CO_CH3OH / STTCO
+               IF ( IDTCOacet > 0 ) STT(I,J,L,IDTCOacet) =
+     &            STT(I,J,L,IDTCOacet) + CO_ACET / STTCO
             ENDIF
 !---------------------------------------------------------
          ENDIF
