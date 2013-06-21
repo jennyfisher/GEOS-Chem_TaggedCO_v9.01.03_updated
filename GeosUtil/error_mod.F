@@ -566,7 +566,8 @@
       REAL*8,           INTENT(IN) :: VALUE        ! Value to be checked
       CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
       CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
-      INTEGER,          INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
+!      INTEGER,          INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
+      INTEGER,          INTENT(IN) :: LOCATION(:)  ! (/ I, J, L, N /) indices
 !
 ! !REVISION HISTORY:
 !  13 Jun 2001 - R. Yantosca - Initial version

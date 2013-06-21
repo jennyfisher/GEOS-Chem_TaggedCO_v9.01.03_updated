@@ -586,6 +586,8 @@ CONTAINS
     REAL*4             :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
     REAL*8             :: ARRAY2( IIPAR, JJPAR, LLPAR )  ! Actual vertical res
 
+    INTEGER            :: st4d(4), ct4d(4)               ! Start & count indices
+
     !=================================================================
     ! GET_RATES begins here
     !=================================================================
@@ -614,10 +616,14 @@ CONTAINS
 100    FORMAT( '         => Reading from file: ', a )
     ENDIF
 
+    ! Start and count arrays for netCDF reads
+    st4d = (/     1,     1,     1,  m /)
+    ct4d = (/ iipar, jjpar, lglob,  1 /)
+
     call NcOp_Rd( fileID, TRIM( FILENAME ) )
-    call NcRd( array, fileID, 'species',                     &
-                              (/     1,     1,     1,  m /), & ! Start
-                              (/ iipar, jjpar, lglob,  1 /)  ) ! Count
+    call NcRd( array, fileID, 'species', st4d, ct4d )
+!                              (/     1,     1,     1,  m /), & ! Start
+!                              (/ iipar, jjpar, lglob,  1 /)  ) ! Count
     call NcCl( fileID )
 
     ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
@@ -647,9 +653,9 @@ CONTAINS
        ! Read production rate [v/v/s]
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-       call NcRd( array, fileID, 'prod',                          &
-                                 (/     1,     1,     1,  m  /),  & ! Start 
-                                 (/ iipar, jjpar, lglob,  1  /)  )  ! Count
+       call NcRd( array, fileID, 'prod', st4d, ct4d )
+!                                 (/     1,     1,     1,  m  /),  & ! Start 
+!                                 (/ iipar, jjpar, lglob,  1  /)  )  ! Count
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
        call transfer_3D( array, array2 )
@@ -663,9 +669,9 @@ CONTAINS
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Read loss frequencies [s^-1]
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       call NcRd( array, fileID, 'loss',                          &
-                                 (/     1,     1,     1,  m  /),  & ! Start
-                                 (/ iipar, jjpar, lglob,  1  /)  )  ! Count
+       call NcRd( array, fileID, 'loss', st4d, ct4d )
+!                                 (/     1,     1,     1,  m  /),  & ! Start
+!                                 (/ iipar, jjpar, lglob,  1  /)  )  ! Count
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
        call transfer_3D( array, array2 )
@@ -813,6 +819,10 @@ CONTAINS
     ! Pointers
     REAL*8, POINTER    :: ptr_3D(:,:,:)
 
+    ! Start & count indices
+    INTEGER            :: st1d(1), ct1d(1)
+    INTEGER            :: st4d(4), ct4d(4)
+
     !=================================================================
     ! GET_RATES_INTERP begins here
     !=================================================================
@@ -840,8 +850,14 @@ CONTAINS
 
     ! Get the lat and lon centers of the 2x2.5 GMI climatology
     ! WARNING MAKE 2x25 after testing
-    call NcRd( XMID_COARSE, fileID, 'longitude', (/1/),  (/144/) )
-    call NcRd( YMID_COARSE, fileID, 'latitude',  (/1/),  (/91/) )
+! Prevent array temporaries
+    !call NcRd( XMID_COARSE, fileID, 'longitude', (/1/),  (/144/) )
+    !call NcRd( YMID_COARSE, fileID, 'latitude',  (/1/),  (/91/) )
+    st1d   = (/ 1   /)   
+    ct1d   = (/ 144 /)
+    call NcRd( XMID_COARSE, fileID, 'longitude', st1d, ct1d )
+    ct1d   = (/ 91 /)
+    call NcRd( YMID_COARSE, fileID, 'latitude',  st1d, ct1d )
 
     ! For each fine grid index, determine the closest coarse (2x2.5) index
     ! Note: This doesn't do anything special for the date line, and may 
@@ -869,9 +885,12 @@ CONTAINS
     DO J = 1, JGLOB
     DO I = 1, IGLOB
 
-       call NcRd( column, fileID, 'species',           &
-                  (/ I_f2c(I), J_f2c(J),     1, m /),  & ! Start
-                  (/        1,        1, lglob, 1 /)  ) ! Count
+       ! Start and count arrays for netCDF reads
+       st4d = (/ I_f2c(I), J_f2c(J),     1, m /)
+       ct4d = (/        1,        1, lglob, 1 /)
+       call NcRd( column, fileID, 'species', st4d, ct4d )
+!                  (/ I_f2c(I), J_f2c(J),     1, m /),  & ! Start
+!                  (/        1,        1, lglob, 1 /)  ) ! Count
        array( I, J, : ) = column
 
     ENDDO
@@ -962,9 +981,11 @@ CONTAINS
        DO J = 1, JGLOB
        DO I = 1, IGLOB
 
-          call NcRd( column, fileID, 'prod',                       &
-                             (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
-                             (/        1,        1, lglob,  1 /)  )  ! Count
+          st4d = (/ I_f2c(I), J_f2c(J),     1, m /)
+          ct4d = (/        1,        1, lglob, 1 /)
+          call NcRd( column, fileID, 'prod', st4d, ct4d )
+          !                   (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
+          !                   (/        1,        1, lglob,  1 /)  )  ! Count
           array( I, J, : ) = column
 
        ENDDO
@@ -992,9 +1013,11 @@ CONTAINS
        DO J = 1, JGLOB
        DO I = 1, IGLOB
 
-          call NcRd( column, fileID, 'loss',                       &
-                             (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
-                             (/        1,        1, lglob,  1 /)  )  ! Count
+          st4d = (/ I_f2c(I), J_f2c(J),     1, m /)
+          ct4d = (/        1,        1, lglob, 1 /)
+          call NcRd( column, fileID, 'loss', st4d, ct4d )
+          !                   (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
+          !                   (/        1,        1, lglob,  1 /)  )  ! Count
           array( I, J, : ) = column
 
        ENDDO
