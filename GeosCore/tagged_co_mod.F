@@ -1862,6 +1862,7 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
       USE ERROR_MOD,      ONLY : IT_IS_NAN
       USE NCDF_MOD,       ONLY : NC_READ
+      USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D
 
       USE CMN_SIZE_MOD          ! Size parameters
@@ -1885,7 +1886,7 @@
       CHARACTER(LEN=20)     :: PARNAME
       REAL*4, POINTER       :: NCARRAY(:,:,:,:) => NULL()
       REAL*4                :: ARRAY(IIPAR,JJPAR,LGLOB)
-      INTEGER               :: I, J, L, LDIM
+      INTEGER               :: I, J, L, LDIM, NYMD
 
       !=================================================================
       ! READ_PCO_TROP begins here!
@@ -1899,10 +1900,16 @@
 
       ! Reading variables
       !!!! Kludge for testing
-!      FILENAME = TRIM( DATA_DIR ) // 'tagged_co_201304/PCO.'//
-!     &           GET_NAME_EXT()   // '.' // GET_RES_EXT() // '.nc'
-      FILENAME = 'PCO.geos5_72L.'// GET_RES_EXT() //'.nc'
+      FILENAME = TRIM( DATA_DIR ) // 'tagged_CO_201304/PCO.YYYY.'//
+     &           GET_NAME_EXT()   // '.' // GET_RES_EXT() // '.nc'
+!!!!      FILENAME = 'PCO.geos5_72L.'// GET_RES_EXT() //'.nc'
       !!!!
+
+      ! YYYYMMDD for first day of year
+      NYMD = ( THISYEAR * 10000 ) + 0101
+
+      ! Expand filename
+      CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
 
       ! Echo to stdout
       WRITE( 6, '(a)' ) 'READING ', TRIM( FILENAME )
