@@ -9,32 +9,34 @@
 !  ============================================================================
 !  (1 ) BB_REGION   : Array for geographic regions for biomass burning CO
 !  (2 ) FF_REGION   : Array for geographic regions for fossil fuel CO
-!  (3 ) SUMISOPCO   : Array for production of CO from Isoprene
-!  (4 ) SUMMONOCO   : Array for production of CO from Monoterpenes
-!  (5 ) SUMCH3OHCO  : Array for production of CO from CH3OH (methanol)
-!  (6 ) SUMACETCO   : Array for production of CO from Acetone
-!  (7 ) EMACET      : Array for hold monthly mean acetone emissions
-!  (8 ) CO_PRODS    : Array for P(CO) from CH4      in the stratosphere
-!  (9 ) CO_LOSSS    : Array for L(CO) from CO  + OH in the stratosphere
-!  (10) FMOL_CO     : molecular weight of CO
-!  (11) XNUMOL_CO   : molec CO / kg CO
-!  (12) FMOL_CO     : molecular weight of ISOP
-!  (13) XNUMOL_CO   : molec ISOP / kg ISOP
-!  (14) FMOL_MONO   : molecular weight of MONOTERPENES
-!  (15) XNUMOL_MONO : molec MONOTERPENES / kg MONOTERPENES
+!  (3 ) VOC_REGION  : Array for geographic regions for CO production
+!  (4 ) SUMISOPCO   : Array for production of CO from Isoprene
+!  (5 ) SUMMONOCO   : Array for production of CO from Monoterpenes
+!  (6 ) SUMCH3OHCO  : Array for production of CO from CH3OH (methanol)
+!  (7 ) SUMACETCO   : Array for production of CO from Acetone
+!  (8 ) EMACET      : Array for hold monthly mean acetone emissions
+!  (9 ) CO_PRODS    : Array for P(CO) from CH4      in the stratosphere
+!  (10) CO_LOSSS    : Array for L(CO) from CO  + OH in the stratosphere
+!  (11) FMOL_CO     : molecular weight of CO
+!  (12) XNUMOL_CO   : molec CO / kg CO
+!  (13) FMOL_CO     : molecular weight of ISOP
+!  (14) XNUMOL_CO   : molec ISOP / kg ISOP
+!  (15) FMOL_MONO   : molecular weight of MONOTERPENES
+!  (16) XNUMOL_MONO : molec MONOTERPENES / kg MONOTERPENES
 !
 !  Module Routines:
 !  ============================================================================
 !  (1 ) DEFINE_FF_CO_REGIONS : Defines geographic regions for fossil fuel CO
 !  (2 ) DEFINE_BB_CO_REGIONS : Defines geographic regions for biomass burn. CO
-!  (3 ) EMISS_TAGGED_CO      : Emits CO into geographically "tagged" tracers
-!  (4 ) CHEM_TAGGED_CO       : Does chemistry for "tagged" CO tracers
-!  (5 ) GET_ALPHA_ISOP       : Returns CO yield from isoprene as f(NOx)
-!  (6 ) READ_PCO_LCO_STRAT   : Reads data into CO_PRODS and CO_LOSSS
-!  (7 ) GET_PCO_LCO_STRAT    : Extracts data from CO_PRODS and CO_LOSSS
-!  (8 ) READ_ACETONE         : Reads biog acetone and acetone from grasslands
-!  (9 ) INIT_TAGGED_CO       : Allocates and initializes module arrays
-!  (10) CLEANUP_TAGGED_CO    : Deallocates module arrays
+!  (3 ) DEFINE_VOC_CO_REGIONS: Defines geographic regions for CO prod.
+!  (4 ) EMISS_TAGGED_CO      : Emits CO into geographically "tagged" tracers
+!  (5 ) CHEM_TAGGED_CO       : Does chemistry for "tagged" CO tracers
+!  (6 ) GET_ALPHA_ISOP       : Returns CO yield from isoprene as f(NOx)
+!  (7 ) READ_PCO_LCO_STRAT   : Reads data into CO_PRODS and CO_LOSSS
+!  (8 ) GET_PCO_LCO_STRAT    : Extracts data from CO_PRODS and CO_LOSSS
+!  (9 ) READ_ACETONE         : Reads biog acetone and acetone from grasslands
+!  (10) INIT_TAGGED_CO       : Allocates and initializes module arrays
+!  (11) CLEANUP_TAGGED_CO    : Deallocates module arrays
 !
 !  GEOS-CHEM modules referenced by tagged_co_mod.f
 !  ============================================================================
@@ -141,20 +143,22 @@
       !=================================================================
 
       ! PRIVATE module variables
-      PRIVATE BB_REGION, FF_REGION,   SUMCH3OHCO
-      PRIVATE SUMISOPCO, SUMMONOCO,   SUMACETCO
-      PRIVATE CO_PRODS,  CO_LOSSS,    FMOL_CO,   XNUMOL_CO
-      PRIVATE FMOL_ISOP, XNUMOL_ISOP, FMOL_MONO, XNUMOL_MONO      
-      PRIVATE PCO_CH4,   PCO_NMVOC
+      PRIVATE BB_REGION,  FF_REGION,   VOC_REGION
+      PRIVATE SUMCH3OHCO, SUMISOPCO,   SUMMONOCO, SUMACETCO
+      PRIVATE CO_PRODS,   CO_LOSSS,    FMOL_CO,   XNUMOL_CO
+      PRIVATE FMOL_ISOP,  XNUMOL_ISOP, FMOL_MONO, XNUMOL_MONO      
+      PRIVATE PCO_CH4,    PCO_NMVOC
       
       ! PRIVATE module routines
-      PRIVATE DEFINE_FF_CO_REGIONS, DEFINE_BB_CO_REGIONS 
+      PRIVATE DEFINE_FF_CO_REGIONS, DEFINE_BB_CO_REGIONS
+      PRIVATE DEFINE_VOC_CO_REGIONS
 
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
       INTEGER, ALLOCATABLE :: BB_REGION(:,:)
       INTEGER, ALLOCATABLE :: FF_REGION(:,:)
+      INTEGER, ALLOCATABLE :: VOC_REGION(:,:)
       REAL*8,  ALLOCATABLE :: SUMCH3OHCO(:,:)
       REAL*8,  ALLOCATABLE :: SUMISOPCO(:,:)
       REAL*8,  ALLOCATABLE :: SUMMONOCO(:,:)
@@ -212,7 +216,10 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_XMID, GET_YMID
+      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
+      USE TRACERID_MOD, ONLY : IDTCOaus, IDTCOindo, IDTCOseas, IDTCOind
+      USE TRACERID_MOD, ONLY : IDTCOnas, IDTCOaf,   IDTCOsam,  IDTCOnh
+      USE TRACERID_MOD, ONLY : IDTCOoth
 
       USE CMN_SIZE_MOD
 
@@ -267,46 +274,54 @@
 !         ENDIF
          ! Region #2 -- Australian/New Zealand FF CO 
          IF ( ( X >=  112.5 .and. X < 180.0 )   .and. 
-     &        ( Y >=  -48.0 .and. Y < -10.0 ) ) THEN
-            REGION(I,J) = 2
+     &        ( Y >=  -48.0 .and. Y < -10.0 )   .and. 
+     &        ( IDTCOaus > 0                ) ) THEN
+            REGION(I,J) = IDTCOaus
             
          ! Region #3 -- Indonesian FF CO 
          ELSE IF ( ( X >=  95.0 .and. X < 165.0 )  .and. 
-     &             ( Y >= -10.0 .and. Y <   6.0 ) ) THEN
-            REGION(I,J) = 3
+     &             ( Y >= -10.0 .and. Y <   6.0 )  .and.
+     &             ( IDTCOindo > 0              ) ) THEN
+            REGION(I,J) = IDTCOindo
 
          ! Region #4 -- SE Asian FF CO 
          ELSE IF ( ( X >=  90.0 .and. X < 130.0 )  .and. 
-     &             ( Y >=   6.0 .and. Y <  32.0 ) ) THEN
-            REGION(I,J) = 4
+     &             ( Y >=   6.0 .and. Y <  32.0 )  .and.
+     &             ( IDTCOseas > 0              ) ) THEN
+            REGION(I,J) = IDTCOseas
 
          ! Region #5 -- Indian FF CO
          ELSE IF ( ( X >= 70.0 .and. X <  90.0 )  .and.
-     &             ( Y >=  6.0 .and. Y <  32.0 ) ) THEN
-            REGION(I,J) = 5
+     &             ( Y >=  6.0 .and. Y <  32.0 )  .and.
+     &             ( IDTCOind > 0              ) ) THEN
+            REGION(I,J) = IDTCOind
    
          ! Region #6 -- North Asian FF CO
          ELSE IF ( ( X >= 75.0 .and. X < 152.5 )  .and.
-     &             ( Y >= 32.0 .and. Y <  56.0 ) ) THEN
-            REGION(I,J) = 6
+     &             ( Y >= 32.0 .and. Y <  56.0 )  .and.
+     &             ( IDTCOnas > 0              ) ) THEN
+            REGION(I,J) = IDTCOnas
    
          ! Region #7 -- African FF CO
          ELSE IF ( ( X >= -17.5 .and. X <  55.0 )  .and.
-     &             ( Y >= -36.0 .and. Y <  36.0 ) ) THEN
-            REGION(I,J) = 7
+     &             ( Y >= -36.0 .and. Y <  36.0 )  .and.
+     &             ( IDTCOaf > 0                ) ) THEN
+            REGION(I,J) = IDTCOaf
    
          ! Region #8 -- South American FF CO
          ELSE IF ( ( X >= -82.5 .and. X < -32.5 )  .and.
-     &             ( Y >= -58.0 .and. Y <  12.0 ) ) THEN
-            REGION(I,J) = 8
+     &             ( Y >= -58.0 .and. Y <  12.0 )  .and.
+     &             ( IDTCOsam > 0               ) ) THEN
+            REGION(I,J) = IDTCOsam
    
          ! Region #9 -- Other Northern Hemisphere FF CO
-         ELSE IF ( Y >= 6.0 ) THEN
-            REGION(I,J) = 9
+         ELSE IF ( ( Y >= 6.0    ) .and.
+     &             ( IDTCOnh > 0 ) ) THEN
+            REGION(I,J) = IDTCOnh
    
          ! Region #9 -- FF CO from everywhere else
-         ELSE
-            REGION(I,J) = 10
+         ELSE IF ( IDTCOoth > 0 ) THEN
+            REGION(I,J) = IDTCOoth
                
          ENDIF
 !---------------------------------------------------------
@@ -344,7 +359,10 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_XMID, GET_YMID
+      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
+      USE TRACERID_MOD, ONLY : IDTCObsa, IDTCObnaf, IDTCObsaf, IDTCObas
+      USE TRACERID_MOD, ONLY : IDTCObind, IDTCObindo, IDTCObaus
+      USE TRACERID_MOD, ONLY : IDTCObnh,  IDTCOboth
 
       USE CMN_SIZE_MOD
 
@@ -409,46 +427,54 @@
 !          ENDIF
           ! Region #11 -- South American BB CO 
           IF ( ( X >=  -82.5 .and. X < -32.5 )  .and.
-     &         ( Y >=  -58.0 .and. Y <  12.0 ) ) THEN
-             REGION(I,J) = 11
+     &         ( Y >=  -58.0 .and. Y <  12.0 )  .and.
+     &         ( IDTCObsa > 0                ) ) THEN
+             REGION(I,J) = IDTCObsa
 
           ! Region #12 -- North African BB CO 
           ELSE IF ( ( X >= -17.5 .and. X < 55.0 )  .and.
-     &              ( Y >=   0.0 .and. Y < 36.0 ) ) THEN
-             REGION(I,J) = 12
+     &              ( Y >=   0.0 .and. Y < 36.0 )  .and.
+     &              ( IDTCObnaf > 0             ) ) THEN
+             REGION(I,J) = IDTCObnaf
 
           ! Region #13 -- South African BB CO 
           ELSE IF ( ( X >= -17.5 .and. X < 55.0 )  .and.
-     &              ( Y >= -36.0 .and. Y <  0.0 ) ) THEN
-             REGION(I,J) = 13
+     &              ( Y >= -36.0 .and. Y <  0.0 )  .and.
+     &              ( IDTCObsaf > 0             ) ) THEN
+             REGION(I,J) = IDTCObsaf
 
           ! Region #14 -- Southeast Asian BB CO 
           ELSE IF ( ( X >= 90.0 .and. X < 130.0 )  .and.
-     &              ( Y >=  6.0 .and. Y <  32.0 ) ) THEN
-             REGION(I,J) = 14
+     &              ( Y >=  6.0 .and. Y <  32.0 )  .and.
+     &              ( IDTCObas > 0              ) ) THEN
+             REGION(I,J) = IDTCObas
 
          ! Region #15 -- Indian BB CO
          ELSE IF ( ( X >= 70.0 .and. X <  90.0 )  .and.
-     &             ( Y >=  6.0 .and. Y <  32.0 ) ) THEN
-            REGION(I,J) = 15
+     &             ( Y >=  6.0 .and. Y <  32.0 )  .and.
+     &              ( IDTCObind > 0            ) ) THEN
+            REGION(I,J) = IDTCObind
    
           ! Region #16 -- Indonesian BB CO 
           ELSE IF ( ( X >=  95.0 .and. X < 165.0 )  .and.
-     &              ( Y >= -10.0 .and. Y <   6.0 ) ) THEN
-             REGION(I,J) = 16
+     &              ( Y >= -10.0 .and. Y <   6.0 )  .and.
+     &              ( IDTCObindo > 0             ) ) THEN
+             REGION(I,J) = IDTCObindo
 
           ! Region #17 -- Australian BB CO 
           ELSE IF ( ( X >= 112.5 .and. X < 167.5 )  .and.
-     &              ( Y >= -44.0 .and. Y < -10.0 ) ) THEN
-             REGION(I,J) = 17 
+     &              ( Y >= -44.0 .and. Y < -10.0 )  .and.
+     &              ( IDTCObaus > 0              ) ) THEN
+             REGION(I,J) = IDTCObaus
 
          ! Region #18 -- Other Northern Hemisphere BB CO
-         ELSE IF ( Y >= 6.0 ) THEN
-            REGION(I,J) = 18
+         ELSE IF ( ( Y >= 6.0      )   .and.
+     &             ( IDTCObnh > 0  ) ) THEN
+            REGION(I,J) = IDTCObnh
    
           ! Region #19 -- Rest of World BB CO  
-          ELSE 
-             REGION(I,J) = 19
+          ELSE IF ( IDTCOboth > 0  ) THEN
+             REGION(I,J) = IDTCOboth
 
           ENDIF
 !---------------------------------------------------------
@@ -458,6 +484,117 @@
 
       ! Return to calling program
       END SUBROUTINE DEFINE_BB_CO_REGIONS
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE DEFINE_VOC_CO_REGIONS( REGION )
+!
+!******************************************************************************
+!  Subroutine DEFINE_VOC_CO_REGIONS defines the geographic regions
+!  for CO production from NMVOCs for the Tagged CO simulation. (jaf, 9/10/13)
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (1 ) REGION (INTEGER) : Array of biogenic CO regions 
+!
+!  NOTES:
+!  10 Sep 2013 - J.A. Fisher - Initial version, based on DEFINE_FF_CO_REGIONS
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
+      USE TRACERID_MOD, ONLY : IDTCOvaus, IDTCOvindo, IDTCOvseas
+      USE TRACERID_MOD, ONLY : IDTCOvind, IDTCOvnas,  IDTCOvaf
+      USE TRACERID_MOD, ONLY : IDTCOvsam, IDTCOvnh,   IDTCOvoth
+      USE TRACERID_MOD, ONLY : IDTCOnmvoc
+
+      USE CMN_SIZE_MOD
+
+      ! Arguments
+      INTEGER, INTENT(OUT) :: REGION(IIPAR,JJPAR)
+
+      ! Local variables
+      INTEGER              :: I, J
+      REAL*8               :: X, Y
+
+      !=================================================================
+      ! DEFINE_VOC_CO_REGIONS begins here!
+      !=================================================================
+
+      ! Only split CO production if there is no total COnmvoc tracer
+      IF ( IDTCOnmvoc == 0 ) THEN
+
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED ) 
+!$OMP+PRIVATE( I, J, X, Y )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Longitude & latitude [degrees]
+         X = GET_XMID( I, J, 1 )
+         Y = GET_YMID( I, J, 1 )
+         
+         ! Region #2 -- Australian/New Zealand FF CO 
+         IF ( ( X >=  112.5 .and. X < 180.0 )   .and. 
+     &        ( Y >=  -48.0 .and. Y < -10.0 )   .and. 
+     &        ( IDTCOvaus > 0                ) ) THEN
+            REGION(I,J) = IDTCOvaus
+            
+         ! Region #3 -- Indonesian FF CO 
+         ELSE IF ( ( X >=  95.0 .and. X < 165.0 )  .and. 
+     &             ( Y >= -10.0 .and. Y <   6.0 )  .and.
+     &             ( IDTCOvindo > 0              ) ) THEN
+            REGION(I,J) = IDTCOvindo
+
+         ! Region #4 -- SE Asian FF CO 
+         ELSE IF ( ( X >=  90.0 .and. X < 130.0 )  .and. 
+     &             ( Y >=   6.0 .and. Y <  32.0 )  .and.
+     &             ( IDTCOvseas > 0              ) ) THEN
+            REGION(I,J) = IDTCOvseas
+
+         ! Region #5 -- Indian FF CO
+         ELSE IF ( ( X >= 70.0 .and. X <  90.0 )  .and.
+     &             ( Y >=  6.0 .and. Y <  32.0 )  .and.
+     &             ( IDTCOvind > 0              ) ) THEN
+            REGION(I,J) = IDTCOvind
+   
+         ! Region #6 -- North Asian FF CO
+         ELSE IF ( ( X >= 75.0 .and. X < 152.5 )  .and.
+     &             ( Y >= 32.0 .and. Y <  56.0 )  .and.
+     &             ( IDTCOvnas > 0              ) ) THEN
+            REGION(I,J) = IDTCOvnas
+   
+         ! Region #7 -- African FF CO
+         ELSE IF ( ( X >= -30.0 .and. X <  60.0 )  .and.
+     &             ( Y >= -36.0 .and. Y <  36.0 )  .and.
+     &             ( IDTCOvaf > 0                ) ) THEN
+            REGION(I,J) = IDTCOvaf
+   
+         ! Region #8 -- South American FF CO
+         ELSE IF ( ( X >= -120.0 .and. X < -30.0 )  .and.
+     &             ( Y >=  -58.0 .and. Y <  15.0 )  .and.
+     &             ( IDTCOvsam > 0               ) ) THEN
+            REGION(I,J) = IDTCOvsam
+   
+         ! Region #9 -- Other Northern Hemisphere FF CO
+         ELSE IF ( ( Y >= 6.0    ) .and.
+     &             ( IDTCOvnh > 0 ) ) THEN
+            REGION(I,J) = IDTCOvnh
+   
+         ! Region #9 -- FF CO from everywhere else
+         ELSE IF ( IDTCOvoth > 0 ) THEN
+            REGION(I,J) = IDTCOvoth
+               
+         ENDIF
+!---------------------------------------------------------
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+               
+      ENDIF ! COnmvoc not defined
+
+      ! Return to calling program
+      END SUBROUTINE DEFINE_VOC_CO_REGIONS
 
 !------------------------------------------------------------------------------
 
@@ -1008,6 +1145,7 @@
       ! Do the following on the first calla to CHEM_TAGGED_CO...
       !=================================================================
       IF ( FIRSTCHEM ) THEN
+         CALL DEFINE_VOC_CO_REGIONS( VOC_REGION )         
          FIRSTCHEM = .FALSE.
       ENDIF
 
@@ -2121,6 +2259,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FF_REGION' )
       FF_REGION = 0
       
+      ! Allocate VOC_REGION -- array for NMVOC regions
+      ALLOCATE( VOC_REGION( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VOC_REGION' )
+      VOC_REGION = 0
+      
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMISOPCO' )         
@@ -2171,6 +2314,7 @@
 !
       IF ( ALLOCATED( BB_REGION  ) ) DEALLOCATE( BB_REGION  )
       IF ( ALLOCATED( FF_REGION  ) ) DEALLOCATE( FF_REGION  )
+      IF ( ALLOCATED( VOC_REGION ) ) DEALLOCATE( VOC_REGION )
       IF ( ALLOCATED( SUMISOPCO  ) ) DEALLOCATE( SUMISOPCO  )
       IF ( ALLOCATED( SUMMONOCO  ) ) DEALLOCATE( SUMMONOCO  )
       IF ( ALLOCATED( SUMCH3OHCO ) ) DEALLOCATE( SUMCH3OHCO )

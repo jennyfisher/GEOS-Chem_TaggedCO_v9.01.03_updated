@@ -321,8 +321,17 @@
       INTEGER            :: IDBGLYC, IDBHAC      
 
       ! Specialised tagged CO tracers (jaf, 6/5/13)
-      INTEGER            :: IDTCOBIOF, IDTCOCH4,  IDTCONMVOC
-      INTEGER            :: IDTCOISOP, IDTCOMONO, IDTCOMEOH, IDTCOACET
+      INTEGER            :: IDTCOAUS,  IDTCOINDO,  IDTCOSEAS, IDTCOIND
+      INTEGER            :: IDTCONAS,  IDTCOAF,    IDTCOSAM,  IDTCONH
+      INTEGER            :: IDTCOOTH
+      INTEGER            :: IDTCOBSA,  IDTCOBNAF,  IDTCOBSAF, IDTCOBAS
+      INTEGER            :: IDTCOBIND, IDTCOBINDO, IDTCOBAUS, IDTCOBNH
+      INTEGER            :: IDTCOBOTH
+      INTEGER            :: IDTCOVAUS, IDTCOVINDO, IDTCOVSEAS, IDTCOVIND
+      INTEGER            :: IDTCOVNAS, IDTCOVAF,   IDTCOVSAM,  IDTCOVNH
+      INTEGER            :: IDTCOVOTH
+      INTEGER            :: IDTCOBIOF, IDTCOCH4,   IDTCONMVOC
+      INTEGER            :: IDTCOISOP, IDTCOMONO,  IDTCOMEOH, IDTCOACET
       
 
       CONTAINS
@@ -1131,27 +1140,75 @@
             !--------------------------------
             ! Specialized tagged CO tracers (jaf, 6/5/13)
             !--------------------------------
+            ! This makes it easier to flexibly change regions/types
+            CASE ( 'COAUS' )
+               IDTCOaus          = N
+            CASE ( 'COINDO' )
+               IDTCOindo         = N
+            CASE ( 'COSEAS' )
+               IDTCOseas         = N
+            CASE ( 'COIND' )
+               IDTCOind          = N
+            CASE ( 'CONAS' )
+               IDTCOnas          = N
+            CASE ( 'COAF' )
+               IDTCOaf           = N
+            CASE ( 'COSAM' )
+               IDTCOsam          = N
+            CASE ( 'CONH' )
+               IDTCOnh           = N
+            CASE ( 'COOTH' )
+               IDTCOoth          = N
+            CASE ( 'COBSA' )
+               IDTCObsa          = N
+            CASE ( 'COBNAF' )
+               IDTCObnaf         = N
+            CASE ( 'COBSAF' )
+               IDTCObsaf         = N
+            CASE ( 'COBAS' )
+               IDTCObas          = N
+            CASE ( 'COBIND' )
+               IDTCObind         = N
+            CASE ( 'COBINDO' )
+               IDTCObindo        = N
+            CASE ( 'COBAUS' )
+               IDTCObaus         = N
+            CASE ( 'COBNH' )
+               IDTCObnh          = N
+            CASE ( 'COBOTH' )
+               IDTCOboth         = N
+            CASE ( 'COVAUS' )
+               IDTCOvaus          = N
+            CASE ( 'COVINDO' )
+               IDTCOvindo         = N
+            CASE ( 'COVSEAS' )
+               IDTCOvseas         = N
+            CASE ( 'COVIND' )
+               IDTCOvind          = N
+            CASE ( 'COVNAS' )
+               IDTCOvnas          = N
+            CASE ( 'COVAF' )
+               IDTCOvaf           = N
+            CASE ( 'COVSAM' )
+               IDTCOvsam          = N
+            CASE ( 'COVNH' )
+               IDTCOvnh           = N
+            CASE ( 'COVOTH' )
+               IDTCOvoth          = N
             CASE ( 'COBIOF' )
                IDTCObiof         = N
-
             CASE ( 'COCH4' )
                IDTCOch4          = N
-
             CASE ( 'CONMVOC' )
                IDTCOnmvoc        = N
-
             CASE ( 'COISOP' )
                IDTCOisop         = N
-
             CASE ( 'COMONO' )
                IDTCOmono         = N
-
             CASE ( 'COMEOH' )
                IDTCOmeoh         = N
-
             CASE ( 'COACET' )
                IDTCOacet         = N
-
             CASE DEFAULT
                ! Nothing
 
