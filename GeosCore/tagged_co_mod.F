@@ -1535,8 +1535,15 @@
      &          STT(I,J,L,IDTCOch4) + CO_CH4   / STTCO
 
             IF ( LPCO_FULLCHEM ) THEN
-               IF ( IDTCOnmvoc > 0 ) STT(I,J,L,IDTCOnmvoc) =
-     &            STT(I,J,L,IDTCOnmvoc) + CO_NMVOC / STTCO
+               IF ( IDTCOnmvoc > 0 ) THEN
+                  ! Lump NMVOC production into one global tracer
+                  STT(I,J,L,IDTCOnmvoc) =
+     &               STT(I,J,L,IDTCOnmvoc) + CO_NMVOC / STTCO
+               ELSE
+                  ! Split NMVOC production into regional tracers
+                  N            = VOC_REGION(I,J)
+                  STT(I,J,L,N) = STT(I,J,L,N) + CO_NMVOC / STTCO
+               ENDIF
             ELSE
                IF ( IDTCOisop > 0 ) STT(I,J,L,IDTCOisop) =
      &            STT(I,J,L,IDTCOisop) + CO_ISOP / STTCO
