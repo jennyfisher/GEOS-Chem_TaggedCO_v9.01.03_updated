@@ -2239,6 +2239,10 @@ c new OH+CO rate from JPL2006.
       ! If negative value is calculated, set it to zero
       IF ( GAMMA  <= 0d0 ) GAMMA = 0d0
 
+      ! Update gamma following Mao et al. (2013), ACP
+      ! Instead of 1 use 0.2 to match GEOS-Chem v9-02 (jaf, 1/28/14)
+      GAMMA = 2d-1
+
       ! Return to CALCRATE
       END FUNCTION HO2
 
