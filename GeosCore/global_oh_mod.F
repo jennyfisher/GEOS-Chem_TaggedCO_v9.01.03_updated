@@ -216,7 +216,7 @@
       ! Reading variables
       !!!! Kludge for testing
       FILENAME = TRIM( DATA_DIR ) // 
-     &           'tagged_CO_201304/OH_3Dglobal.YYYY.'//
+     &           'tagged_CO_201401/OH_3Dglobal.YYYY.'//
      &           GET_NAME_EXT()   // '.' // GET_RES_EXT() // '.nc'
 !!!!      FILENAME = 'OH_3Dglobal.geos5_72L.'// GET_RES_EXT() //'.nc'
       !!!!

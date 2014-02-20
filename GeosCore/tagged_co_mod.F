@@ -2045,7 +2045,7 @@
 
       ! Reading variables
       !!!! Kludge for testing
-      FILENAME = TRIM( DATA_DIR ) // 'tagged_CO_201304/PCO.YYYY.'//
+      FILENAME = TRIM( DATA_DIR ) // 'tagged_CO_201401/PCO.YYYY.'//
      &           GET_NAME_EXT()   // '.' // GET_RES_EXT() // '.nc'
 !!!!      FILENAME = 'PCO.geos5_72L.'// GET_RES_EXT() //'.nc'
       !!!!
