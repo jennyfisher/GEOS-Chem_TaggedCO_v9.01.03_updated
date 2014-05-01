@@ -167,7 +167,7 @@
 !
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE ERROR_MOD,      ONLY : IT_IS_NAN
+      USE ERROR_MOD,      ONLY : IT_IS_NAN, GEOS_CHEM_STOP
       USE NCDF_MOD,       ONLY : NC_READ
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D
@@ -178,8 +178,8 @@
 ! !INPUT PARAMETERS:
 !
       ! Year and month
-      INTEGER,             INTENT(IN) :: THISYEAR
-      INTEGER,             INTENT(IN) :: THISMONTH
+      INTEGER, INTENT(IN) :: THISYEAR
+      INTEGER, INTENT(IN) :: THISMONTH
 !
 ! !REVISION HISTORY:
 !  22 May 2013 - J. Fisher - Initial version
@@ -213,13 +213,20 @@
       ARRAY     = 0E0
       OH        = 0D0
 
-      ! Reading variables
-      !!!! Kludge for testing
+      ! Filename
       FILENAME = TRIM( DATA_DIR ) // 
      &           'tagged_CO_201401/OH_3Dglobal.YYYY.'//
      &           GET_NAME_EXT()   // '.' // GET_RES_EXT() // '.nc'
-!!!!      FILENAME = 'OH_3Dglobal.geos5_72L.'// GET_RES_EXT() //'.nc'
-      !!!!
+
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+
+#else
+      WRITE(6,*) 'Monthly-varying OH has only been saved for GEOS-5!'
+      WRITE(6,*) 'Create a new input file, or turn off '
+      WRITE(6,*) '  "Use full chem OH?" in input.geos'
+      CALL GEOS_CHEM_STOP
+
+#endif
 
       ! YYYYMMDD for first day of year
       NYMD = ( THISYEAR * 10000 ) + 0101 
