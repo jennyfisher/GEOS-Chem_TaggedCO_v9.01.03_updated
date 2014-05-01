@@ -2744,7 +2744,7 @@
       IF ( ND29 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(29) = 5
+         NTRAC(29) = 6
 
          ! Loop over tracers
          DO T = 1, NTRAC(29)
@@ -2754,24 +2754,32 @@
                CASE( 1 )
                   NAME (T,29) = 'COanth'
                   FNAME(T,29) = 'Anthropogenic CO'
+                  UNIT (T,29) = 'molec/cm2/s'
                CASE( 2 )
                   NAME (T,29) = 'CObb'
                   FNAME(T,29) = 'Biomass CO'
+                  UNIT (T,29) = 'molec/cm2/s'
                CASE( 3 )
                   NAME (T,29) = 'CObf'
                   FNAME(T,29) = 'Biofuel CO'
+                  UNIT (T,29) = 'molec/cm2/s'
                CASE( 4 )
                   NAME (T,29) = 'COch4'
                   FNAME(T,29) = 'CO from methane'
+                  UNIT (T,29) = 'molec/cm3/s'
                CASE( 5 )
                   NAME (T,29) = 'COnmvoc'
                   FNAME(T,29) = 'CO from NMVOCs'
+                  UNIT (T,29) = 'molec/cm3/s'
+               CASE( 6 )
+                  NAME (T,29) = 'COoh'
+                  FNAME(T,29) = 'CO loss from OH'
+                  UNIT (T,29) = 'molec/cm3/s'
                CASE DEFAULT
                   ! Nothing
             END SELECT
 
             ! Define the rest of the quantities
-            UNIT (T,29) = 'molec/cm2/s'
             INDEX(T,29) = T + ( SPACING * 20 )
             MOLC (T,29) = 1
             MWT  (T,29) = 28e-3

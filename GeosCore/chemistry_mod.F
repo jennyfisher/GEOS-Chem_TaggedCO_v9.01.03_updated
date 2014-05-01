@@ -392,6 +392,9 @@
          ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
             CALL CHEM_TAGGED_CO
  
+            ! ND43 chemical production
+            CALL DIAGOH
+ 
          !---------------------------------
          ! C2H6
          !---------------------------------

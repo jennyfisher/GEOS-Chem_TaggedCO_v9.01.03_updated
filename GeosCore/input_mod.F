@@ -3513,6 +3513,7 @@
       USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM,        ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM,    ITS_A_RnPbBe_SIM
       USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM,      ITS_A_CH3I_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_TAGCO_SIM
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,        ITS_A_CH4_SIM
       USE TRACERID_MOD, ONLY : NEMANTHRO
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
@@ -3900,7 +3901,15 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:43' )
       READ( SUBSTRS(1), * ) ND43
-      IF ( .not. ( ITS_A_FULLCHEM_SIM().or.ITS_A_CH4_SIM() )) ND43 = 0
+      IF ( .not. ( ITS_A_FULLCHEM_SIM() .or.
+     &             ITS_A_CH4_SIM()      .or.
+     &             ITS_A_TAGCO_SIM()         ) ) ND43 = 0
+
+      ! Only OH can be saved for tagged CO
+      IF ( ITS_A_TAGCO_SIM() .and. ND43 > 0 ) THEN
+         IF ( N > 2 ) N = 2
+         IF ( SUBSTRS(2) /= '1' ) SUBSTRS(2) = '1'
+      ENDIF
       CALL SET_TINDEX( am_I_Root, 43, ND43, SUBSTRS(2:N), N-1, PD43 )
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:44' )
@@ -5151,7 +5160,7 @@
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE TRACER_MOD,  ONLY : N_TRACERS,       ITS_A_TAGCO_SIM
       USE TRACER_MOD,  ONLY : ITS_A_TAGOX_SIM, ITS_AN_AEROSOL_SIM
-      USE LOGICAL_MOD, ONLY : LKPP
+      USE LOGICAL_MOD, ONLY : LKPP,            LPCO_FULLCHEM
 
       USE CMN_SIZE_MOD      ! MAXFAM
       USE CMN_DIAG_MOD      ! ND65
@@ -5306,8 +5315,13 @@
 
       ! Tagged CO
       IF ( DO_SAVE_PL .and. ITS_A_TAGCO_SIM() ) THEN
-         IF ( NFAM /= N_TRACERS+5 ) THEN
-            MSG = 'Wrong number of P/L families for Tagged CO!'
+         IF ( LPCO_FULLCHEM .and. NFAM /= N_TRACERS+2 ) THEN
+           MSG = 'Wrong number of P/L families for Tagged CO:' //
+     &           '  Need N_TRACERS+2!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ELSE IF ( .not. LPCO_FULLCHEM .and. NFAM /= N_TRACERS+5 ) THEN
+            MSG = 'Wrong number of P/L families for Tagged CO:' //
+     &            '  Need N_TRACERS+5!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF

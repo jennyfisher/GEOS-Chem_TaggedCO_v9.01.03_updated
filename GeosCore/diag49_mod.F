@@ -192,6 +192,7 @@
       USE TIME_MOD,      ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
       USE PBL_MIX_MOD,   ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
+      USE TRACER_MOD,    ONLY : ITS_A_TAGCO_SIM
       USE TRACER_MOD,    ONLY : STT,                TCVV
       USE TRACER_MOD,    ONLY : XNUMOLAIR
       USE PRESSURE_MOD,  ONLY : GET_PEDGE
@@ -242,6 +243,7 @@
 !
       LOGICAL, SAVE            :: FIRST  = .TRUE.
       LOGICAL, SAVE            :: IS_FULLCHEM, IS_NOx,     IS_Ox 
+      LOGICAL, SAVE            :: IS_TAGCO
       LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
       LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
@@ -267,6 +269,7 @@
          IS_OPTD     = ALLOCATED( OPTD    )
          IS_SLP      = ALLOCATED( SLP     )
          IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+         IS_TAGCO    = ITS_A_TAGCO_SIM()
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
          IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
          IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
@@ -472,7 +475,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
+         ELSE IF ( N == 76 .and. 
+     &            ( IS_FULLCHEM .or. IS_TAGCO ) ) THEN
 
             !-------------------------------------
             ! OH CONCENTRATION [molec/cm3]

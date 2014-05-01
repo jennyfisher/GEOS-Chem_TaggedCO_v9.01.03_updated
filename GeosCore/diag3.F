@@ -1946,8 +1946,9 @@
 !  (1) COanth : CO from Anthro Sources  : mol/cm2/s : SCALESRCE
 !  (2) CObb   : CO from Biomass Burning : mol/cm2/s : SCALESRCE
 !  (3) CObf   : CO from Biofuel Burning : mol/cm2/s : SCALESRCE
-!  (4) COmeth : CO from Methanol        : mol/cm2/s : SCALESRCE
-!  (5) COmono : CO from Monoterpenes    : mol/cm2/s : SCALESRCE
+!  (4) COch4  : CO from Methane         : mol/cm3/s : SCALESRCE
+!  (5) COnmvoc: CO from NMVOCs          : mol/cm3/s : SCALESRCE
+!  (6) COoh   : CO loss from OH         : mol/cm3/s : SCALESRCE
 !
 !  NOTES:
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -1957,24 +1958,39 @@
 !******************************************************************************
 !
       IF ( ND29 > 0 ) THEN
-         CATEGORY ='CO--SRCE'
-         UNIT    = 'mol/cm2/s'
+         CATEGORY = 'CO--SRCE'
+         UNIT     = 'mol/cm2/s'
+         SCALEX   = SCALESRCE
 
          DO M = 1, TMAX(29)
             N  = TINDEX(29,M)
             IF ( N > PD29 ) CYCLE
             NN = N 
 
+            ! 2D vs 3D source
+            IF ( M >= 4 ) THEN
+               UNIT = 'mol/cm3/s'
+               SCALEX = SCALECHEM
+            ENDIF
+
             !ARRAY(:,:,1) = AD29(:,:,N) / SCALESRCE
-            DO L = 1,LLTROP
-               ARRAY(:,:,L) = AD29(:,:,L,N) / SCALESRCE
+            DO L = 1,LLPAR
+               ARRAY(:,:,L) = AD29(:,:,L,N) / SCALEX
             ENDDO
 
+            IF ( M < 4 ) THEN
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LLTROP,   IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP) )
+     &                  IIPAR,     JJPAR,     1,   IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+            ELSE
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     LLPAR,   IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
+            ENDIF
          ENDDO
       ENDIF
 !
@@ -2696,6 +2712,29 @@
      &                  IIPAR,     JJPAR,     LD43,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD43) )
          ENDDO
+
+      ELSE IF ( ND43 > 0 .and. ITS_A_TAGCO_SIM() ) THEN
+
+         ! For tagged CO, it's just OH that will be saved
+         CATEGORY = 'CHEM-L=$' 
+         UNIT     = 'molec/cm3'
+         N        = 1
+         NN       = 1
+
+         ! OH
+         WHERE( CTOH /= 0 )
+            ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     $         FLOAT( CTOH )
+         ELSEWHERE
+            ARRAY(:,:,1:LD43) = 0.
+         ENDWHERE
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     LD43,     IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD43) )
+
       ENDIF
 !
 !******************************************************************************
