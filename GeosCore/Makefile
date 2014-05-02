@@ -294,7 +294,8 @@ biofuel_mod.o               : biofuel_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               epa_nei_mod.o           future_emissions_mod.o \
                               logical_mod.o           streets_anthro_mod.o   \
-                              tracerid_mod.o          tracer_mod.o    
+                              tracerid_mod.o          tracer_mod.o           \
+                              emep_mod.o
 
 biofit.o                    : biofit.F
 
@@ -484,7 +485,7 @@ diag48_mod.o                : diag48_mod.F                                   \
 diag49_mod.o                : diag49_mod.F                                   \
                               dao_mod.o               modis_lai_mod.o        \
                               pbl_mix_mod.o           tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o
 
 diag50_mod.o                : diag50_mod.F                                   \
                               comode_mod.o            dao_mod.o              \
