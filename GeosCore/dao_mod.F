@@ -51,6 +51,7 @@
       PUBLIC  :: IS_NEAR
       PUBLIC  :: MAKE_AVGW
       PUBLIC  :: MAKE_RH
+      PUBLIC  :: COSSZA
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -1668,7 +1669,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COSSZA( DOY, GMT_HOUR, SUNCOS, SUNCOS_MID )
+      SUBROUTINE COSSZA( DOY, GMT_HOUR, SUNCOS, SUNCOS_MID, IN_MINUTE )
 !
 ! !USES:
 !
@@ -1681,6 +1682,7 @@
 !
       INTEGER, INTENT(IN)  :: DOY                 ! Day of the year
       INTEGER, INTENT(IN)  :: GMT_HOUR            ! Hour of day
+      INTEGER, OPTIONAL, INTENT(IN)  :: IN_MINUTE ! Minute
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1767,7 +1769,11 @@
 
       ! Quantities for central chemistry timestep
       TS_SUN   = GET_TS_CHEM()                         ! Chemistry interval
-      MINUTE   = GET_MINUTE()                          ! Current minutes
+      IF ( PRESENT(IN_MINUTE) ) THEN
+         MINUTE = IN_MINUTE
+      ELSE
+         MINUTE   = GET_MINUTE()                       ! Current minutes
+      ENDIF
       FACTOR   = MINUTE / TS_SUN                       ! Multiplying factor
 
       ! GMT at the current time

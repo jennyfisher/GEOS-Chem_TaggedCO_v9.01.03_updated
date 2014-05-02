@@ -2069,10 +2069,17 @@ contains
        ! chemistry simulation. Hopefully this simplification wouldn't 
        ! cause too much problem, since the std. tagged_co simulation 
        ! is also approximate, anyway. (Lin, 06/20/09) 
+       ! This is causing trouble! Added non-local mixing for tagged CO
+       ! based on the code used in other offline simulations (jaf, 3/20/14)
        !----------------------------------------------------------------
        IF ( IS_TAGCO ) THEN
-          eflx(I,J,:) = 0d0 
-       ENDIF
+!          eflx(I,J,:) = 0d0 
+          do N = 1, N_TRACERS
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) &
+                         / GET_AREA_M2( I, J, 1 )         &
+                         / GET_TS_EMIS() / 60.d0
+          enddo
+       endif
 
        !----------------------------------------------------------------
        ! Add emissions for offline CH4 simulation
@@ -2302,7 +2309,6 @@ contains
 
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
-
 
        !----------------------------------------------------------------
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)

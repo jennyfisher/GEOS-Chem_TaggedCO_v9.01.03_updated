@@ -168,6 +168,7 @@
       REAL*8,  ALLOCATABLE :: CO_LOSSS(:,:,:)
       REAL*8,  ALLOCATABLE :: PCO_CH4(:,:,:)
       REAL*8,  ALLOCATABLE :: PCO_NMVOC(:,:,:)
+      REAL*8,  ALLOCATABLE :: TCOSZ(:,:)
 
       ! FMOL_CO     - kg CO / mole CO
       ! XNUMOL_CO   - molecules CO / kg CO
@@ -672,22 +673,27 @@
       !IDBCO now in tracerid_mod (fp, 6/2009)
       USE BIOMASS_MOD,  ONLY : BIOMASS!,     IDBCO
       ! Add variables for MEGAN (jaf, 3/10/09)
-      USE DAO_MOD,      ONLY : SUNCOS,        PARDF,       PARDR
+      USE DAO_MOD,      ONLY : SUNCOS_MID,     PARDF,       PARDR
       USE DIAG_MOD,     ONLY : AD29,          AD46
       USE GRID_MOD,     ONLY : GET_XOFFSET,   GET_YOFFSET, GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LSPLIT,        LANTHRO
+      USE LOGICAL_MOD,  ONLY : LPCO_FULLCHEM
       USE LOGICAL_MOD,  ONLY : LBIOMASS,      LBIOFUEL
       ! Add switches for biogenic MEGAN (jaf, 3/10/09)
-      USE LOGICAL_MOD,  ONLY : LBIOGENIC,        LMEGAN
+      USE LOGICAL_MOD,  ONLY : LBIOGENIC,     LMEGAN,      LMEGANMONO
       USE LOGICAL_MOD,  ONLY : LBF_WITH_FF
+      USE LOGICAL_MOD,  ONLY : LNLPBL
       ! Add MEGAN biogenic routines (jaf, 3/10/09)
       USE MEGAN_MOD,    ONLY : GET_EMISOP_MEGAN, GET_EMMONOT_MEGAN
+      USE MEGAN_MOD,    ONLY : GET_EMMONOG_MEGAN
       USE MEGANUT_MOD,  ONLY : XLTMMP
       USE PBL_MIX_MOD,  ONLY : GET_PBL_MAX_L, GET_FRAC_OF_PBL
       USE TIME_MOD,     ONLY : GET_MONTH,     GET_TAU 
       USE TIME_MOD,     ONLY : GET_YEAR,      GET_TS_EMIS  
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDBFCO, IDECO, IDBCO, IDTCObiof
+      USE TRACERID_MOD, ONLY : IDTCOnmvoc
+      USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE
       
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_O3_MOD       ! FSCALYR, SCNR89, TODH, EMISTCO, EMISRR
@@ -713,6 +719,13 @@
       ! Add variables needed for MEGAN biogenics (jaf, 3/10/09)
       REAL*8                 :: SC,   PDF,  PDR
       
+      ! Molecules C / kg C
+      REAL*8,  PARAMETER     :: XNUMOL_C = 6.022d+23 / 12d-3 
+
+      ! Add in new monoterpene species (mpb,2009)
+      REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
+      REAL*8                 :: MYRCN  , CAREN , OCIMN
+
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL
       REAL*8, EXTERNAL       :: EMCH3OH
@@ -730,10 +743,14 @@
          ! Define geographic regions for both fossil fuel & biomass burning
          CALL DEFINE_FF_CO_REGIONS( FF_REGION )         
          CALL DEFINE_BB_CO_REGIONS( BB_REGION )
+         CALL DEFINE_VOC_CO_REGIONS( VOC_REGION )
 
          ! Set first-time flag to false
          FIRSTEMISS = .FALSE.
       ENDIF
+
+      ! If we are using the non-local PBL mixing, initialize EMIS_SAVE
+      IF (LNLPBL) EMIS_SAVE = 0d0
 
       !=================================================================
       ! Once a month, read acetone from disk.  For GEOS-3, also read 
@@ -791,12 +808,20 @@
                E_CO = E_CO * ( DTSRCE / XNUMOL_CO )  
 
                ! Add FF CO to Tracer #1 -- total CO [kg CO]
-               STT(I,J,1,1) = STT(I,J,1,1) + E_CO
+               IF ( LNLPBL ) THEN
+                  EMIS_SAVE(I,J,1) = E_CO
+               ELSE
+                  STT(I,J,1,1) = STT(I,J,1,1) + E_CO
+               ENDIF
 
                ! Split FF CO into geographic regions -- Tracers #2 - #5
                IF ( LSPLIT ) THEN
                   N            = FF_REGION(I,J)
-                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO
+                  IF ( LNLPBL ) THEN
+                     EMIS_SAVE(I,J,N) = E_CO
+                  ELSE
+                     STT(I,J,1,N) = STT(I,J,1,N) + E_CO
+                  ENDIF
                ENDIF
             ENDDO
          ENDDO
@@ -843,6 +868,17 @@
             E_CO = ( BIOMASS(I,J,IDBCO) / XNUMOL_CO ) *
      &             ( AREA_CM2           * DTSRCE    ) 
 
+            ! For non-local mixing...
+            IF ( LNLPBL ) THEN
+               EMIS_SAVE(I,J,1) = EMIS_SAVE(I,J,1) + E_CO
+               IF ( LSPLIT ) THEN
+                  N            = BB_REGION(I,J)
+                  EMIS_SAVE(I,J,N) = EMIS_SAVE(I,J,N) + E_CO
+               ENDIF
+
+            ! For original mixing...
+            ELSE
+
             DO L = 1, PBL_MAX
            
                F_OF_PBL = GET_FRAC_OF_PBL (I,J,L) 
@@ -856,7 +892,9 @@
                   STT(I,J,L,N) = STT(I,J,L,N) + E_CO * F_OF_PBL                  
                ENDIF
 
-         ENDDO
+            ENDDO
+
+            ENDIF ! Original mixing
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -894,28 +932,31 @@
      &             BOXVL(I,J,1)        * DTSRCE
 
             ! Add biofuel CO burning to tracer #1 -- total CO [kg CO]
-            STT(I,J,1,1) = STT(I,J,1,1) + E_CO
+            IF ( LNLPBL ) THEN
+               EMIS_SAVE(I,J,1) = EMIS_SAVE(I,J,1) + E_CO
+            ELSE
+               STT(I,J,1,1) = STT(I,J,1,1) + E_CO
+            ENDIF
 
             ! Add biofuel CO burning [kg CO] as Tracer #13 (bmy, 6/14/01)
-            !
-            ! %%% NOTE: If you are modifying the tagged CO simulation, 
-            ! %%% and your simulation has less than 13 tracers, then 
-            ! %%% then comment out this IF block.  If you don't you can
-            ! %%% get an array-out-of-bounds error (bmy, 6/11/08)
             IF ( LSPLIT ) THEN
                ! Add biofuel CO to fossil fuel CO by region (jaf, 11/22/12)
                IF ( LBF_WITH_FF ) THEN
                   N            = FF_REGION(I,J)
-                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO
+                  IF ( LNLPBL ) THEN
+                     EMIS_SAVE(I,J,N) = EMIS_SAVE(I,J,N) + E_CO
+                  ELSE
+                     STT(I,J,1,N) = STT(I,J,1,N) + E_CO
+                  ENDIF
                ELSE
-!---------------------------------------------------------
-! Reset tagged CO regions (jaf, 17 Oct 12)
-!                  STT(I,J,1,13) = STT(I,J,1,13) + E_CO
-!                  STT(I,J,1,21) = STT(I,J,1,21) + E_CO
-! Now use tracer numbers from tracerid_mod.F (jaf, 5 Jun 13)
-                  IF ( IDTCObiof > 0 ) STT(I,J,1,IDTCObiof) = 
-     &               STT(I,J,1,IDTCObiof) + E_CO
-!---------------------------------------------------------
+                  IF ( IDTCObiof > 0 ) THEN
+                  IF ( LNLPBL ) THEN
+                     EMIS_SAVE(I,J,IDTCObiof) = EMIS_SAVE(I,J,IDTCObiof)
+     &                                        + E_CO
+                  ELSE
+                     STT(I,J,1,IDTCObiof) = STT(I,J,1,IDTCObiof) + E_CO
+                  ENDIF
+                  ENDIF
                ENDIF
             ENDIF
          ENDDO
@@ -930,11 +971,13 @@
       ! Add biogenic switch in case you want biogenic but no biofuel
       ! (jaf, 3/10/09)
       IF ( LBIOGENIC ) THEN
+
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, AREA_CM2, IJLOOP, TMMP, EMIS, EMMO, EMAC )
+!$OMP+PRIVATE( APINE, BPINE, LIMON, SABIN, MYRCN, CAREN, OCIMN )
 ! Add some private declarations for use with MEGAN
-!$OMP+PRIVATE( SC, PDR, PDF )
+!$OMP+PRIVATE( SC, PDR, PDF, N, E_CO )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -966,7 +1009,7 @@
             !------------------
 
             ! Cosine of solar zenith angle
-            SC = SUNCOS(IJLOOP)
+            SC = SUNCOS_MID(IJLOOP)
 
             ! Diffuse and direct PAR
             PDR = PARDR(I,J)
@@ -979,6 +1022,46 @@
             ! Monoterpene [atoms C/box/timestep]
             EMMO = GET_EMMONOT_MEGAN( I, J,  SC, TMMP, 
      &                                PDR, PDF, XNUMOL_MONO )
+
+         ENDIF
+
+         ! As in full chem, get individual monoterpenes from MEGAN (jaf,
+         ! 3/25/14)
+         IF ( LMEGANMONO ) THEN
+
+            ! ------------------------------------------
+            ! Aplha Pinene emissions
+            APINE = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                 PDR , PDF , XNUMOL_C , 'APINE' )
+            ! ------------------------------------------
+            ! Beta Pinene emissions
+            BPINE = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                 PDR , PDF , XNUMOL_C , 'BPINE' )
+            ! ------------------------------------------
+            ! Limonene emissions 
+            LIMON = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                 PDR , PDF , XNUMOL_C , 'LIMON' )
+            ! ------------------------------------------
+            ! Sabinene emissions
+            SABIN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                 PDR , PDF , XNUMOL_C , 'SABIN' )               
+            ! ------------------------------------------
+            ! Mycrene emissions
+            MYRCN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                 PDR , PDF , XNUMOL_C , 'MYRCN' )
+            ! ------------------------------------------
+            ! 3-Carene emissions
+            CAREN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                 PDR , PDF , XNUMOL_C , 'CAREN' )
+            ! ------------------------------------------
+            ! Ocimene emissions
+            OCIMN = GET_EMMONOG_MEGAN( I , J , SC , TMMP ,  
+     &                 PDR , PDF , XNUMOL_C , 'OCIMN' )
+            ! ------------------------------------------
+
+            ! Total monoterpenes = sum of individual
+            EMMO = APINE + BPINE + LIMON + SABIN + 
+     &             MYRCN + CAREN + OCIMN
 
          ENDIF
 
@@ -1009,6 +1092,42 @@
          ! Sum acetone loss for use in chemco_decay
          ! Units = [atoms C/box/timestep]
          SUMACETCO(I,J) = SUMACETCO(I,J) + (EMAC * DTSRCE * AREA_CM2)
+
+         ! For consistency w/ full chem, treat mono-CO as emission (jaf,
+         ! 3/25/14)
+         IF ( LPCO_FULLCHEM ) THEN
+
+            ! Assume 20% yield from monoterpenes on C-basis and
+            ! convert from molec CO /box/timestep to kg CO/box/timestep
+            E_CO = EMMO * 0.2d0 / XNUMOL_CO
+
+            ! Add monoterpene CO to tracer #1 -- total CO [kg CO]
+            IF ( LNLPBL ) THEN
+               EMIS_SAVE(I,J,1) = EMIS_SAVE(I,J,1) + E_CO
+            ELSE
+               STT(I,J,1,1) = STT(I,J,1,1) + E_CO
+            ENDIF
+
+            ! Add to NMVOC tracers
+            IF ( LSPLIT ) THEN
+               IF ( IDTCOnmvoc > 0 ) THEN
+                  N = IDTCOnmvoc
+               ELSE
+                  N = VOC_REGION(I,J)
+               ENDIF
+               IF ( LNLPBL ) THEN
+                  EMIS_SAVE(I,J,N) = EMIS_SAVE(I,J,N) + E_CO
+               ELSE
+                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO
+               ENDIF
+            ENDIF
+
+         ! molec CO / cm3 / s
+         IF ( ND29 > 0 )
+     &      AD29(I,J,1,5) = AD29(I,J,1,5) + E_CO * XNUMOL_CO / 
+     &                                      ( BOXVL(I,J,1) * DTSRCE )
+         ENDIF
+
             
       ENDDO
       ENDDO
@@ -1077,10 +1196,14 @@
 !  22 Oct 2012 - R. Yantosca - Now pass am_I_Root=.TRUE. to GET_GLOBAL_CH4
 !  26 Apr 2013 - J.A. Fisher - Now use stored P(CO) from full chem
 !  26 Apr 2013 - J.A. Fisher - Now save CO from VOCs in ND29(:,:,4)
+!  25 Mar 2014 - J.A. Fisher - Move CO production from monoterpenes out
+!                              of LPCO_FULLCHEM statement
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,        ONLY : AD, AIRVOL, T, DELP
+      ! jaf, 3/12/14
+      USE DAO_MOD,        ONLY : SUNCOS_MID
       ! jaf, 3/10/09
       USE DIAG_MOD,       ONLY : AD29
       USE DIAG_PL_MOD,    ONLY : AD65
@@ -1097,14 +1220,18 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,       ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+      USE TIME_MOD,       ONLY : ITS_A_NEW_DAY,   GET_DAY
+      USE TIME_MOD,       ONLY : GET_HOUR
       USE TRACER_MOD,     ONLY : N_TRACERS,       STT
       USE TRACERID_MOD,   ONLY : IDTCOch4,        IDTCOnmvoc
       USE TRACERID_MOD,   ONLY : IDTCOisop,       IDTCOmono
       USE TRACERID_MOD,   ONLY : IDTCOmeoh,       IDTCOacet
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
 
+
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! ND65
+      USE CMN_O3_MOD       ! SAVEOH
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
@@ -1123,6 +1250,10 @@
       REAL*8                 :: BLOG1,     FEXP1,      KHI2
       REAL*8                 :: KLO2,      XYRAT2,     BLOG2
       REAL*8                 :: FEXP2,     KCO1,       KCO2
+
+      ! For OH diurnal cycle (jaf, 3/12/14)
+      INTEGER                :: JLOOP
+      REAL*8                 :: OH_MOLEC_CM3, FAC_DIURNAL
 
       ! For storing CO sources (jaf, 3/10/09)
       REAL*8                 :: DTSRCE, AREA_CM2
@@ -1182,6 +1313,10 @@
             
       ENDIF
 
+      ! Need to compute diurnal cycle every day (jaf, 3/17/14)
+      ! Test for new day is inside subroutine
+      CALL CALC_DIURNAL
+
       !=================================================================
       ! Get the yearly and latitudinal gradients for CH4
       ! This only needs to be called once per year
@@ -1209,7 +1344,7 @@
 ! Add private declarations for new CO+OH rate (jaf, jmao, 3/4/09)
 !$OMP+PRIVATE( KHI1, KLO1, XYRAT1, BLOG1, FEXP1, KHI2, KLO2       )
 !$OMP+PRIVATE( XYRAT2, BLOG2, FEXP2, KCO1, KCO2, AREA_CM2         )
-!$OMP+PRIVATE( CO_NMVOC )
+!$OMP+PRIVATE( CO_NMVOC, JLOOP, OH_MOLEC_CM3, FAC_DIURNAL )
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -1234,6 +1369,17 @@
 
          ! DENS is the number density of air [molec air/cm3]
          DENS  = AD(I,J,L) * 1000.d0 / BOXVL(I,J,L) * 6.023d23  / WTAIR
+
+         ! 1-D grid box index for SUNCOS
+         JLOOP = ( (J-1) * IIPAR ) + I
+
+         ! Scaling factor for diurnal cycles - zero at night
+         IF ( SUNCOS_MID(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+            FAC_DIURNAL = ( SUNCOS_MID(JLOOP) / TCOSZ(I,J) ) *
+     &                    ( 1440d0            / GET_TS_CHEM() )
+         ELSE
+            FAC_DIURNAL = 0d0
+         ENDIF
 
          !==============================================================
          ! (1a) Production of CO by reaction with CH4
@@ -1264,7 +1410,10 @@
             ! Use saved rate (jaf, 4/26/13)
             IF ( LPCO_FULLCHEM ) THEN
 
-               CO_CH4 = PCO_CH4(I,J,L) * DTCHEM
+               CO_CH4 = PCO_CH4(I,J,L) * DTCHEM * FAC_DIURNAL
+
+               ! Make sure it is not negative
+               CO_CH4 = MAX( CO_CH4, 0d0 )
 
             ELSE
 
@@ -1310,7 +1459,10 @@
          IF ( ITS_IN_THE_TROP(I,J,L) ) THEN
 
             ! Use saved rates in the troposphere
-            CO_NMVOC = PCO_NMVOC(I,J,L) * DTCHEM
+            CO_NMVOC = PCO_NMVOC(I,J,L) * DTCHEM * FAC_DIURNAL
+
+            ! Make sure it is not negative
+            CO_NMVOC = MAX( CO_NMVOC, 0d0 )
 
          ELSE
 
@@ -1324,10 +1476,12 @@
      &                    'CO_NMVOC', 'STOP at tagged_co_mod:1b' )
 
          ! Set individual VOCs to zero to avoid diagnostic problems
+         ! This includes CO from monoterpenes which (for consistency
+         ! with full chem) is treated as an emission (jaf, 5/2/14)
          CO_ISOP  = 0d0
          CO_CH3OH = 0d0
-         CO_MONO  = 0d0
          CO_ACET  = 0d0
+         CO_MONO  = 0d0
 
          ELSE ! standard treatment
          !==============================================================
@@ -1405,62 +1559,6 @@
          ENDIF
 
          !==============================================================
-         ! (1c) Production of CO from MONOTERPENE oxidation
-         !==============================================================
-
-         ! Initialize
-         CO_MONO = 0.d0
-
-         ! Monoterpenes are emitted only into the surface layer
-         IF ( L == 1 ) THEN
-
-            !===========================================================
-            ! Assume the production of CO from monoterpenes is 
-            ! instantaneous even though the lifetime of intermediate 
-            ! species may be on the order of hours or days.  This 
-            ! assumption will likely cause CO from monoterpene 
-            ! oxidation to be too high in the box in which the 
-            ! monoterpene is emitted.
-            !-----------------------------------------------------------
-            ! The CO yield here is taken from:
-            !   Hatakeyama et al. JGR, Vol. 96, p. 947-958 (1991)
-            !   Vinckier et al. Fresenius Env. Bull., Vol. 7, p.361-368 
-            !     (1998)
-            !
-            ! Hatakeyama:  "The ultimate yield of CO from the 
-            !   tropospheric oxidation of terpenes (including both O3 
-            !   and OH reactions) was estimated to be 20% on the carbon 
-            !   number basis."  They studied ALPHA- & BETA-pinene.
-            !
-            ! Vinckier  :  "R(CO)=1.8+/-0.3" : 1.8/10 is about 20%.
-            !-----------------------------------------------------------
-            ! Calculate source of CO per time step from monoterpene 
-            ! flux (assume lifetime very short) using the C number basis:
-            !
-            !   CO [molec CO/cm3] = Flux [atoms C from MONO/box] /
-            !                       Grid Box Volume [cm^-3]       *
-            !                       ALPHA_MONO 
-            !
-            ! where ALPHA_MONO = 0.2 as explained above.
-            !===========================================================
-
-            ! Yield of CO from MONOTERPENES: 20% (see above)
-            ALPHA_MONO = 0.20d0
-
-            ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
-            ! Units are [molec CO/cm3]
-            CO_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L) ) * ALPHA_MONO
-
-            ! Zero SUMMONOCO for the next emission step
-            SUMMONOCO(I,J) = 0d0
-
-            ! Check CO_MONO for NaN or Infinity
-            CALL CHECK_VALUE( CO_MONO,  (/ I, J, L, 0 /),
-     &                       'CO_MONO', 'STOP at tagged_co_mod:4' )
-
-         ENDIF
-
-         !==============================================================
          ! (1d) Production of CO from oxidation of ACETONE 
          !
          ! ALPHA_ACET = 2/3 to get a yield for CO.  This accounts 
@@ -1501,65 +1599,122 @@
 
          ENDIF
 
-         ENDIF ! saved rates or standard treatment
+         ! Add all VOCs (except MONO) to CO_NMVOC
+         CO_NMVOC = CO_ACET + CO_CH3OH + CO_ISOP
+
+         ! For consistency with full chem, we now treat the monoterpene
+         ! source as an emission. This also allows us to mix it through
+         ! the boundary layer if non-local PBL mixing is turned on,
+         ! which is slightly better than treating it as a surface
+         ! source. So for now I have readded this section into the IF
+         ! statement that only calculates these fluxes if LPCO_FULLCHEM
+         ! is false (jaf, 5/2/14)
          !==============================================================
-         ! (1e) Add production of CO into the following tagged tracers:
+         ! (1c) Production of CO from MONOTERPENE oxidation
+         !      Rearranged on 25 March 2014 to account for the fact that
+         !      this production is treated separately in full chem and
+         !      so is not included in PCO_NMVOC. Note that it is
+         !      commented out for tagged CO in emissdr.F, so it is ok to
+         !      treat it here, which allows us to include it in
+         !      diagnostics & NMVOC tracers (jaf)
+         !==============================================================
+
+         ! Initialize
+         CO_MONO = 0.d0
+
+         ! Monoterpenes are emitted only into the surface layer
+         IF ( L == 1 ) THEN
+
+            !===========================================================
+            ! Assume the production of CO from monoterpenes is 
+            ! instantaneous even though the lifetime of intermediate 
+            ! species may be on the order of hours or days.  This 
+            ! assumption will likely cause CO from monoterpene 
+            ! oxidation to be too high in the box in which the 
+            ! monoterpene is emitted.
+            !-----------------------------------------------------------
+            ! The CO yield here is taken from:
+            !   Hatakeyama et al. JGR, Vol. 96, p. 947-958 (1991)
+            !   Vinckier et al. Fresenius Env. Bull., Vol. 7, p.361-368 
+            !     (1998)
+            !
+            ! Hatakeyama:  "The ultimate yield of CO from the 
+            !   tropospheric oxidation of terpenes (including both O3 
+            !   and OH reactions) was estimated to be 20% on the carbon 
+            !   number basis."  They studied ALPHA- & BETA-pinene.
+            !
+            ! Vinckier  :  "R(CO)=1.8+/-0.3" : 1.8/10 is about 20%.
+            !-----------------------------------------------------------
+            ! Calculate source of CO per time step from monoterpene 
+            ! flux (assume lifetime very short) using the C number basis:
+            !
+            !   CO [molec CO/cm3] = Flux [atoms C from MONO/box] /
+            !                       Grid Box Volume [cm^-3]       *
+            !                       ALPHA_MONO 
+            !
+            ! where ALPHA_MONO = 0.2 as explained above.
+            !-----------------------------------------------------------
+            ! Note that a diurnal cycle is already implied from the
+            ! MEGAN monoterpene emissions.
+            !===========================================================
+
+            ! Yield of CO from MONOTERPENES: 20% (see above)
+            ALPHA_MONO = 0.20d0
+
+            ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
+            ! Units are [molec CO/cm3]
+            CO_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L) ) * ALPHA_MONO
+
+            ! Zero SUMMONOCO for the next emission step
+            SUMMONOCO(I,J) = 0d0
+
+            ! Check CO_MONO for NaN or Infinity
+            CALL CHECK_VALUE( CO_MONO,  (/ I, J, L, 0 /),
+     &                       'CO_MONO', 'STOP at tagged_co_mod:4' )
+
+         ENDIF
+
+         ! Add CO_MONO to CO_NMVOC, regardless of which PCO scheme used.
+         CO_NMVOC = CO_NMVOC + CO_MONO
+
+         ENDIF ! saved rates or standard treatment
+
+         !==============================================================
+         ! (1e) Add production of CO into tagged tracers:
          !
-         ! (a) Tracer #12: CO produced from CH4
-         ! (b) Tracer #14: CO produced from ISOPRENE
-         ! (c) Tracer #15: CO produced from MONOTERPENES
-         ! (d) Tracer #16: CO produced from METHANOL (CH3OH)
-         ! (e) Tracer #17: CO produced from ACETONE
-         !
-         ! %%% NOTE: If you are modifying the tagged CO simulation, 
-         ! %%% and your simulation has less than 12 tracers, then 
-         ! %%% then comment out this section.  If you don't you can
-         ! %%% get an array-out-of-bounds error (bmy, 6/11/08)
          !==============================================================
          IF ( LSPLIT ) THEN
-!---------------------------------------------------------
-! Reset tagged CO regions (jaf, 17 Oct 12)
-!            STT(I,J,L,12) = STT(I,J,L,12) + CO_CH4   / STTCO
-!            STT(I,J,L,14) = STT(I,J,L,14) + CO_ISOP  / STTCO 
-!            STT(I,J,L,15) = STT(I,J,L,15) + CO_MONO  / STTCO
-!            STT(I,J,L,16) = STT(I,J,L,16) + CO_CH3OH / STTCO
-!            STT(I,J,L,17) = STT(I,J,L,17) + CO_ACET  / STTCO
-! Now use tracer IDs (jaf, 5 Jun 13)
-!            STT(I,J,L,20) = STT(I,J,L,20) + CO_CH4   / STTCO
-!               STT(I,J,L,22) = STT(I,J,L,22) + CO_ISOP  / STTCO
-!               STT(I,J,L,23) = STT(I,J,L,23) + CO_MONO  / STTCO
-!               STT(I,J,L,24) = STT(I,J,L,24) + CO_CH3OH / STTCO
-!               STT(I,J,L,25) = STT(I,J,L,25) + CO_ACET  / STTCO
 
             IF ( IDTCOch4 > 0 ) STT(I,J,L,IDTCOch4) =
      &          STT(I,J,L,IDTCOch4) + CO_CH4   / STTCO
 
-            IF ( LPCO_FULLCHEM ) THEN
-               IF ( IDTCOnmvoc > 0 ) THEN
-                  ! Lump NMVOC production into one global tracer
-                  STT(I,J,L,IDTCOnmvoc) =
-     &               STT(I,J,L,IDTCOnmvoc) + CO_NMVOC / STTCO
-               ELSE
-                  ! Split NMVOC production into regional tracers
-                  N            = VOC_REGION(I,J)
-                  STT(I,J,L,N) = STT(I,J,L,N) + CO_NMVOC / STTCO
-               ENDIF
+            IF ( IDTCOnmvoc > 0 ) THEN
+               ! Lump NMVOC production into one global tracer
+               STT(I,J,L,IDTCOnmvoc) =
+     &            STT(I,J,L,IDTCOnmvoc) + CO_NMVOC / STTCO
             ELSE
-               IF ( IDTCOisop > 0 ) STT(I,J,L,IDTCOisop) =
-     &            STT(I,J,L,IDTCOisop) + CO_ISOP / STTCO
-               IF ( IDTCOmono > 0 ) STT(I,J,L,IDTCOmono) =
-     &            STT(I,J,L,IDTCOmono) + CO_MONO / STTCO
-               IF ( IDTCOmeoh > 0 ) STT(I,J,L,IDTCOmeoh) =
-     &            STT(I,J,L,IDTCOmeoh) + CO_CH3OH / STTCO
-               IF ( IDTCOacet > 0 ) STT(I,J,L,IDTCOacet) =
-     &            STT(I,J,L,IDTCOacet) + CO_ACET / STTCO
+               ! Split NMVOC production into regional tracers
+               N            = VOC_REGION(I,J)
+               STT(I,J,L,N) = STT(I,J,L,N) + CO_NMVOC / STTCO
             ENDIF
-!---------------------------------------------------------
+
+            IF ( IDTCOisop > 0 ) STT(I,J,L,IDTCOisop) =
+     &         STT(I,J,L,IDTCOisop) + CO_ISOP / STTCO
+            IF ( IDTCOmono > 0 ) STT(I,J,L,IDTCOmono) =
+     &         STT(I,J,L,IDTCOmono) + CO_MONO / STTCO
+            IF ( IDTCOmeoh > 0 ) STT(I,J,L,IDTCOmeoh) =
+     &         STT(I,J,L,IDTCOmeoh) + CO_CH3OH / STTCO
+            IF ( IDTCOacet > 0 ) STT(I,J,L,IDTCOacet) =
+     &         STT(I,J,L,IDTCOacet) + CO_ACET / STTCO
+
          ENDIF
 
          !==============================================================
          ! (2a) Loss of CO due to chemical reaction w/ OH
          !==============================================================
+
+         ! Initialize
+         OH_MOLEC_CM3 = 0.d0
 
          ! Select out tropospheric or stratospheric boxes
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
@@ -1665,8 +1820,19 @@
             ! KRATE is the sum of the two.
             KRATE=KCO1+KCO2
 
+            ! Prior to 12 March 2014:
+            ! CO_OH = KRATE * GCO * OH(I,J,L) * DTCHEM
+            ! 
+            ! Now impose a diurnal cycle on OH.
+            ! This is done in other offline simulations but was
+            ! missing from tagged CO (jaf, 3/12/14)
+            OH_MOLEC_CM3 = OH(I,J,L) * FAC_DIURNAL
+
+            ! Make sure OH is not negative
+            OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
+
             ! CO_OH = Tropospheric loss of CO by OH [molec/cm3]
-            CO_OH = KRATE * GCO * OH(I,J,L) * DTCHEM
+            CO_OH = KRATE * GCO * OH_MOLEC_CM3 * DTCHEM
 
             ! Handle trop loss by OH for regional CO tracers
             IF ( LSPLIT ) THEN
@@ -1676,7 +1842,7 @@
 
                   ! Use tropospheric rate constant 
                   STT(I,J,L,N) = STT(I,J,L,N) *
-     &                 ( 1d0 - KRATE * OH(I,J,L) * DTCHEM )
+     &                 ( 1d0 - KRATE * OH_MOLEC_CM3 * DTCHEM )
 
                   ! Error check
                   CALL CHECK_VALUE( STT(I,J,L,N), (/ I, J, L, N /),
@@ -1685,12 +1851,15 @@
                   ! ND65 diagnostic -- loss of CO by OH for "tagged" tracers
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) + 
-     &                    ( KRATE * OH(I,J,L)*STT(I,J,L,N) * STTCO )
+     &                   ( KRATE * OH_MOLEC_CM3 * STT(I,J,L,N) * STTCO )
                   ENDIF
                ENDDO
             ENDIF
 
          ENDIF
+
+         ! Archive the OH concentration used
+         SAVEOH(I,J,L) = OH_MOLEC_CM3
          
          !==============================================================
          ! Save the total chemical production from various sources
@@ -1699,15 +1868,12 @@
 
          ! GCO is the total CO before chemistry was applied [molec CO/cm3]
          ! Add to GCO the sources and sinks listed above
+         ! Both PCO schemes now include CO_NMVOC defined as total of all
+         ! non-methane production terms (including CO_MONO)
+         GCO = GCO + CO_CH4 + CO_NMVOC - CO_OH
 
-         ! Use saved rates with lumped NMVOCs? (jaf, 4/26/13)
-         IF ( LPCO_FULLCHEM ) THEN
-            GCO = GCO + CO_CH4 + CO_NMVOC - CO_OH
-         ELSE
-            GCO = GCO + CO_CH4   + CO_MONO + CO_ACET +
-     &               CO_CH3OH + CO_ISOP - CO_OH
-            CO_NMVOC = CO_MONO + CO_ACET + CO_CH3OH + CO_ISOP
-         ENDIF
+         ! Check for negative concentrations
+         IF ( GCO < 0d0 ) GCO = 0d0
 
          ! Convert net CO from [molec CO/cm3] to [kg] and store in STT
          STT(I,J,L,1) = GCO / STTCO
@@ -1715,11 +1881,11 @@
          !==============================================================
          ! Archive ND29 diagnostics -- CO sources from CH4 and NMVOCs
          !==============================================================
+         ! These are 3-D so store units as molec/cm3/s (jaf, 3 Mar 2014)
          IF ( ND29 > 0 ) THEN
-            AD29(I,J,L,4) = AD29(I,J,L,4) + CO_CH4 * BOXVL(I,J,L) /
-     &                                ( AREA_CM2 * DTCHEM )
-            AD29(I,J,L,5) = AD29(I,J,L,5) + CO_NMVOC * BOXVL(I,J,L) /
-     &                                ( AREA_CM2 * DTCHEM )
+            AD29(I,J,L,4) = AD29(I,J,L,4) + CO_CH4 / DTCHEM
+            AD29(I,J,L,5) = AD29(I,J,L,5) + CO_NMVOC / DTCHEM
+            AD29(I,J,L,6) = AD29(I,J,L,6) + CO_OH / DTCHEM
          ENDIF
 
          !==============================================================
@@ -1732,25 +1898,39 @@
             N             = 1
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_OH / DTCHEM )
 
-            ! Production of CO from Isoprene [molec CO/cm3/s]
-            N             = N_TRACERS + 1
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ISOP / DTCHEM )
+            IF ( LPCO_FULLCHEM ) THEN
+               ! Production of CO from CH4 [molec CO/cm3/s]
+               N             = N_TRACERS + 1
+               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH4 / DTCHEM )
 
-            ! Production of CO from CH4 [molec CO/cm3/s]
-            N             = N_TRACERS + 2
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH4 / DTCHEM )
+               ! Production of CO from NMVOC [molec CO/cm3/s]
+               N             = N_TRACERS + 2
+               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_NMVOC / DTCHEM )
 
-            ! Production of CO from CH3OH [molec CO/cm3/s]            
-            N             = N_TRACERS + 3
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH3OH / DTCHEM )
+            ELSE
 
-            ! Production of CO from MONO [molec CO/cm3/s]
-            N             = N_TRACERS + 4
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_MONO / DTCHEM )    
+               ! Production of CO from Isoprene [molec CO/cm3/s]
+               IF ( IDTCOisop > 0 ) AD65(I,J,L,IDTCOisop) = 
+     &            AD65(I,J,L,IDTCOisop) + ( CO_ISOP / DTCHEM )
+   
+               ! Production of CO from CH4 [molec CO/cm3/s]
+               IF ( IDTCOch4 > 0 ) AD65(I,J,L,IDTCOch4) = 
+     &            AD65(I,J,L,IDTCOch4) + ( CO_CH4 / DTCHEM )
+   
+               ! Production of CO from CH3OH [molec CO/cm3/s]            
+               IF ( IDTCOmeoh > 0 ) AD65(I,J,L,IDTCOmeoh) = 
+     &            AD65(I,J,L,IDTCOmeoh) + ( CO_CH3OH / DTCHEM )
+   
+               ! Production of CO from MONO [molec CO/cm3/s]
+               IF ( IDTCOmono > 0 ) AD65(I,J,L,IDTCOmono) = 
+     &            AD65(I,J,L,IDTCOmono) + ( CO_MONO / DTCHEM )
+   
+               ! Production of CO from ACET [molec CO/cm3/s]
+               IF ( IDTCOacet > 0 ) AD65(I,J,L,IDTCOacet) = 
+     &            AD65(I,J,L,IDTCOacet) + ( CO_ACET / DTCHEM )
+   
+            ENDIF
 
-            ! Production of CO from ACET [molec CO/cm3/s]
-            N             = N_TRACERS + 5 
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ACET / DTCHEM )
          ENDIF
       ENDDO
       ENDDO
@@ -1759,6 +1939,98 @@
 
       ! Return to calling program
       END SUBROUTINE CHEM_TAGGED_CO
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALC_DIURNAL
+!
+!******************************************************************************
+!  Subroutine CALC_DIURNAL computes the sum of cosine of the solar zenith
+!  angle over a 24 hour day, as well as the total length of daylight. 
+!  This is needed to scale the offline OH concentrations.
+!
+!  NOTES:
+!  12 Mar 2014 - J. Fisher   - Copied from carbon_mod to tagged_co_mod
+!                              and rewrote
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DAO_MOD,  ONLY : COSSZA
+      USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR
+      USE TIME_MOD, ONLY : ITS_A_NEW_DAY, GET_HOUR, GET_MINUTE
+
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_GCTM_MOD
+
+      ! Local variables
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      INTEGER             :: I, IJLOOP, J, L, N, NDYSTEP
+      INTEGER             :: DOY, HOUR, MINUTE
+      REAL*8              :: SUNTMP(MAXIJ)
+      REAL*8              :: SUNTMP_MID(MAXIJ)
+      
+      !=================================================================
+      ! CALC_DIURNAL begins here!
+      !=================================================================
+
+      ! Use mid-points, use routines from dao_mod.F to make this easier
+
+      ! NDYSTEP is # of chemistry time steps
+      NDYSTEP = INT( 24d0 * 60d0 / GET_TS_CHEM() )
+
+      ! Only do the following at the start of a new day
+      IF ( FIRST .or. ITS_A_NEW_DAY() ) THEN 
+ 
+         ! Zero arrays
+         TCOSZ(:,:) = 0d0
+
+         ! Get time
+         DOY    = GET_DAY_OF_YEAR()
+         HOUR   = GET_HOUR()
+         MINUTE = GET_MINUTE()
+
+         ! Loop forward through NDYSTEP "fake" timesteps for this day 
+         DO N = 1, NDYSTEP
+            
+            ! Zero SUNTMP arrays
+            SUNTMP(:)     = 0d0
+            SUNTMP_MID(:) = 0d0
+
+            CALL COSSZA( DOY, HOUR, SUNTMP, SUNTMP_MID, MINUTE )
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, IJLOOP )
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               ! Increment IJLOOP
+               IJLOOP = ( (J-1) * IIPAR ) + I
+
+               ! TCOSZ is the sum of SUNTMP at location (I,J)
+               ! Do not include negative values of SUNTMP
+               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP_MID(IJLOOP), 0d0 )
+
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+            ! Increment time
+            MINUTE = MINUTE + GET_TS_CHEM()
+            HOUR   = HOUR   + GET_TS_CHEM() / 60
+            IF ( MINUTE > 60 ) MINUTE = MINUTE - 60
+            IF ( HOUR   > 24 ) THEN
+               HOUR = HOUR - 24
+               DOY  = DOY  + 1
+            ENDIF
+
+      ENDDO
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALC_DIURNAL
 
 !------------------------------------------------------------------------------
 
@@ -2005,10 +2277,9 @@
 !
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE ERROR_MOD,      ONLY : IT_IS_NAN
+      USE ERROR_MOD,      ONLY : IT_IS_NAN, GEOS_CHEM_STOP
       USE NCDF_MOD,       ONLY : NC_READ
       USE TIME_MOD,       ONLY : EXPAND_DATE
-      USE TRANSFER_MOD,   ONLY : TRANSFER_3D
 
       USE CMN_SIZE_MOD          ! Size parameters
 
@@ -2030,7 +2301,7 @@
       CHARACTER(LEN=255)    :: FILENAME
       CHARACTER(LEN=20)     :: PARNAME
       REAL*4, POINTER       :: NCARRAY(:,:,:,:) => NULL()
-      REAL*4                :: ARRAY(IIPAR,JJPAR,LGLOB)
+      REAL*4                :: ARRAY(IIPAR,JJPAR,LLPAR)
       INTEGER               :: I, J, L, LDIM, NYMD
 
       !=================================================================
@@ -2043,12 +2314,32 @@
       PCO_CH4   = 0D0
       PCO_NMVOC = 0D0
 
-      ! Reading variables
-      !!!! Kludge for testing
-      FILENAME = TRIM( DATA_DIR ) // 'tagged_CO_201401/PCO.YYYY.'//
-     &           GET_NAME_EXT()   // '.' // GET_RES_EXT() // '.nc'
-!!!!      FILENAME = 'PCO.geos5_72L.'// GET_RES_EXT() //'.nc'
-      !!!!
+      ! Filename
+      ! Note: This should eventually be re-written to use the 72-level
+      !       grid and re-grid inputs. However, I haven't run this
+      !       version and therefore haven't saved these netcdf files
+      !       except for GEOS5, 47L.
+
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+
+#if   defined( GRIDREDUCED )
+      FILENAME = TRIM( DATA_DIR ) // 'tagged_CO_201401/PCO.YYYY.' //
+     &           GET_NAME_EXT()   // '_47L.' // GET_RES_EXT() // '.nc'
+#else
+      WRITE(6,*) 'PCO file has only been saved for 47L!'
+      WRITE(6,*) 'Create a new input file, or turn off '
+      WRITE(6,*) '  "Use full chem P(CO)?" in input.geos'
+      CALL GEOS_CHEM_STOP
+
+#endif
+
+#else
+      WRITE(6,*) 'PCO file has only been saved for GEOS-5!'
+      WRITE(6,*) 'Create a new input file, or turn off '
+      WRITE(6,*) '  "Use full chem P(CO)?" in input.geos'
+      CALL GEOS_CHEM_STOP
+
+#endif
 
       ! YYYYMMDD for first day of year
       NYMD = ( THISYEAR * 10000 ) + 0101
@@ -2071,7 +2362,7 @@
       ! Resize and cast to REAL*8
       LDIM = SIZE(NCARRAY,3)
       ARRAY(:,:,1:LDIM) = NCARRAY(:,:,:,1)
-      CALL TRANSFER_3D( ARRAY, PCO_CH4 )
+      PCO_CH4 = ARRAY
 
       ! Deallocate ncdf-array
       IF ( ASSOCIATED ( NCARRAY ) ) DEALLOCATE ( NCARRAY )
@@ -2089,7 +2380,7 @@
       ! Resize and cast to REAL*8
       LDIM = SIZE(NCARRAY,3)
       ARRAY(:,:,1:LDIM) = NCARRAY(:,:,:,1)
-      CALL TRANSFER_3D( ARRAY, PCO_NMVOC )
+      PCO_NMVOC = ARRAY
 
       ! Deallocate ncdf-array
       IF ( ASSOCIATED ( NCARRAY ) ) DEALLOCATE ( NCARRAY )
@@ -2301,6 +2592,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PCO_NMVOC' )
       PCO_NMVOC = 0d0
 
+      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
+      TCOSZ = 0d0
+
       ! Return to calling program
       END SUBROUTINE INIT_TAGGED_CO
 
@@ -2331,6 +2626,7 @@
       IF ( ALLOCATED( CO_LOSSS   ) ) DEALLOCATE( CO_LOSSS   )
       IF ( ALLOCATED( PCO_CH4    ) ) DEALLOCATE( PCO_CH4    )
       IF ( ALLOCATED( PCO_NMVOC  ) ) DEALLOCATE( PCO_NMVOC  )
+      IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_TAGGED_CO
